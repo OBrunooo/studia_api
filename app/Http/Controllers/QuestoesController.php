@@ -3,67 +3,32 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Services\Questoes\QuestoesService;
 
-class QuestoesController extends Controller
-{
-    public function gerarQuestoes(Request $request) {   
-        ini_set('max_execution_time', 300); 
-        set_time_limit(300);
+class QuestoesController extends Controller {
+
+    protected $questoesService;
+
+    public function __construct (QuestoesService $questoesService) {
+        $this->questoesService = $questoesService;
+    }
+
+    public function gerarQuestoes(Request $request) {  
         $tema = $request->query("tema");
 
-        $ch = curl_init();
-
-        curl_setopt($ch, CURLOPT_URL, "https://api.openai.com/v1/chat/completions");
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 300);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-            "model" => "gpt-5-nano",
-            "messages" => [
-                [
-                    "role" => "system",
-                    "content" => "Você é um gerador avançado de questões educacionais. Sua tarefa é criar **perguntas objetivas, claras e didáticas** sobre um tema fornecido pelo usuário, com foco em **quem está começando a aprender**. Siga rigorosamente estas regras: 1. Gere exatamente 10 perguntas. 2. As perguntas devem ser **curtas e objetivas**, preferencialmente com no máximo 25 palavras. 3. Cubra todo o tema de forma **abrangente e introdutória**, apropriada para iniciantes. 4. Evite perguntas muito técnicas ou complexas; elas devem facilitar o aprendizado inicial. 5. Não repita perguntas, ideias ou frases. 6. Não forneça respostas. 7. Todas as perguntas deverão ser separadas apenas por {{}} sem pular linha. 8. Não enumere (sem “1.”, “2.” ou “•”). 9. Não forneça explicações ou texto adicional; apenas a lista de perguntas. 10. Certifique-se de que as perguntas sejam **objetivas e diretas**, focadas no aprendizado inicial."
-                ],
-                [
-                    "role" => "user",
-                    "content" => $tema
-                ]
-                ],
-                "max_completion_tokens" => 20000
-        ]));
-
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            "Accept: application/json",
-            "Content-Type: application/json",
-            "Authorization: Bearer " . env('OPENAI_API_KEY')
-        ]);
-
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-
-        $response = curl_exec($ch);
-
-        if($response === false){
-            return response()->json([
-                'erro' => curl_error($ch)
-            ]);
-        };
-        
-        curl_close($ch);
-        $response = json_decode($response, true);
-        // return $response["choices"][0]["message"]["content"];
-        // exit;
-
-        return redirect()->route("verificarQuestoes.get", ["questoes" => $response["choices"][0]["message"]["content"]]);
+        if (isset($tema)) {
+            $tema = $request->query("tema");
+            $questoes = $this->questoesService->gerarQuestoes($tema);
+            return redirect()->route("verificarQuestoes.get", ["questoes" => $questoes]);
+        }
     }
 
     public function verificarQuestoes(Request $request) {
         $questoes = $request->query("questoes");
+        if($questoes != 0) {
+            return $this->questoesService->verificarQuestoes($questoes);
+        }
         
-        $questoes = explode("{{}}",$questoes);
-
-
-        return $questoes;
     }
 
 }
