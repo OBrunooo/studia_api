@@ -26,9 +26,16 @@ class QuestoesController extends Controller {
     public function verificarQuestoes(Request $request) {
         $questoes = $request->query("questoes");
         if($questoes != 0) {
-            return $this->questoesService->verificarQuestoes($questoes);
+            $questoes =  $this->questoesService->verificarQuestoes($questoes);
+            return redirect()->route("verificarConjunto.get", ["questoes" => $questoes]);
         }
         
+    }
+
+    public function verificarConjunto(Request $request) {
+        $questoes = $request->query("questoes");
+
+        return $this->questoesService->verificarConjunto($questoes);
     }
 
 }
