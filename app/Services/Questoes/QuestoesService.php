@@ -1,8 +1,11 @@
 <?php 
     namespace App\Services\Questoes;
+    use Illuminate\Http\Request;
 
 
     class QuestoesService {
+
+        protected $request;
 
         public function gerarQuestoes($tema) {   
             ini_set('max_execution_time', 300); 
@@ -19,7 +22,7 @@
                 "messages" => [
                     [
                         "role" => "system",
-                        "content" => "Você é um gerador avançado de questões educacionais. Sua tarefa é criar **perguntas objetivas, claras e didáticas** sobre um tema fornecido pelo usuário, com foco em **quem está começando a aprender**. Siga rigorosamente estas regras: 1. Gere exatamente 200 perguntas. 2. As perguntas devem ser **curtas e objetivas**, preferencialmente com no máximo 25 palavras. 3. Cubra todo o tema de forma **abrangente e introdutória**, apropriada para iniciantes. 4. Evite perguntas muito técnicas ou complexas; elas devem facilitar o aprendizado inicial. 5. Não repita perguntas, ideias ou frases. 6. Não forneça respostas. 7. Todas as perguntas SEMPRE deverão ser separadas apenas por --- independente da situação e nunca utilize quebra de linha ou contra barra + n. 8. Não enumere (sem “1.”, “2.” ou “•”). 9. Não forneça explicações ou texto adicional; apenas a lista de perguntas. 10. Certifique-se de que as perguntas sejam **objetivas e diretas**, focadas no aprendizado inicial."
+                        "content" => "Você é um gerador avançado de questões educacionais. Sua tarefa é criar **perguntas objetivas, claras e didáticas** sobre um tema fornecido pelo usuário, com foco em **quem está começando a aprender**. Siga rigorosamente estas regras: 1. Gere exatamente 50 perguntas. 2. As perguntas devem ser **curtas e objetivas**, preferencialmente com no máximo 25 palavras. 3. Cubra todo o tema de forma **abrangente e introdutória**, apropriada para iniciantes. 4. Evite perguntas muito técnicas ou complexas; elas devem facilitar o aprendizado inicial. 5. Não repita perguntas, ideias ou frases. 6. Não forneça respostas. 7. Todas as perguntas SEMPRE deverão ser separadas apenas por --- independente da situação e nunca utilize quebra de linha ou contra barra + n. 8. Não enumere (sem “1.”, “2.” ou “•”). 9. Não forneça explicações ou texto adicional; apenas a lista de perguntas. 10. Certifique-se de que as perguntas sejam **objetivas e diretas**, focadas no aprendizado inicial."
                     ],
                     [
                         "role" => "user",
@@ -129,6 +132,7 @@
         }
 
         public function verificarConjunto($questoes) {
+
             $message = "";
             for($i = 0; $i < count($questoes); $i++) {
                 $questao = $questoes[$i];
@@ -169,7 +173,7 @@
 
             if($response === false){
                 return response()->json([
-                    'erro' => curl_error($ch)
+                    'erro requisição' => curl_error($ch)
                 ]);
             };
             
@@ -193,9 +197,19 @@
                         }
                     }
                 };
-                return $erros;
+                $oldQuestoes = $questoes;
+                for($i = 0; $i < count($erros); $i++) {
+                    unset($questoes[($erros[$i] - 1)]);
+                };
+                $questoes = array_values($questoes);
+                return [
+                    "oldQuestoes" => $oldQuestoes,
+                    "newQuestoes" => $questoes,
+                    "erros" => $erros
+                ];
+                exit;
             } catch (\Throwable $th) {
-                return "error";
+                return "errorfim";
             }
         }
 
