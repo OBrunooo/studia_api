@@ -322,6 +322,10 @@
             };
         }
 
+        public function listaConjuntos($userId) {
+
+        }
+
     }
 
 ?>
