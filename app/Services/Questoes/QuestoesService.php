@@ -1,6 +1,5 @@
 <?php 
     namespace App\Services\Questoes;
-    use Illuminate\Http\Request;
     use App\Models\ConjuntoQuestoes;
     use App\Models\Questoes;
 
@@ -8,7 +7,6 @@
 
     class QuestoesService {
 
-        protected $request;
 
         public function verificarTema($tema) {
             ini_set('max_execution_time', 300); 

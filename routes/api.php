@@ -1,7 +1,7 @@
 <?php
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\QuestoesController;
-use App\Http\Controllers\AuthController;
+use App\Http\Controllers\LoginRegisterController;
 use App\Models\User;
 
 Route::middleware('api')->group(function () {
@@ -11,7 +11,9 @@ Route::middleware('api')->group(function () {
     Route::get("/verificarConjunto",[QuestoesController::class, "verificarConjunto"])->name("verificarConjunto.get");
     Route::get("/storageQuestoes",[QuestoesController::class, "storage"])->name("storageQuestoes.get");
 
-    Route::post("/login", [AuthController::class, "verificaLogin"]);
+    Route::post("/login", [LoginRegisterController::class, "login"]);
+    Route::post("/registrar", [LoginRegisterController::class, "registrar"]);
+
 
     Route::middleware(['auth:sanctum'])->group(function() {
         Route::get("listaConjuntos", [QuestoesController::class, "listaConjuntos"]);
