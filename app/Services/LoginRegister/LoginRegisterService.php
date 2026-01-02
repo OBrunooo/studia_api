@@ -58,6 +58,11 @@ class LoginRegisterService {
            return "Erro";
         }
     }
+
+    public function logoutUser(string $token) {
+        
+    } 
+
 }
 
 ?>

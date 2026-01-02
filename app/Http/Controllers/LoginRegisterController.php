@@ -58,4 +58,21 @@ class LoginRegisterController extends Controller
         
         return json_encode($this->loginRegisterService->registrarUser($request->email, $request->senha, $request->nome));
     }
+
+    public function logout(Request $request) {
+        try {
+            $request->user()->currentAccessToken()->delete();
+
+            return json_encode([
+                "status" => "success",
+                "mensagem" => "Logout realizado com sucesso!"
+            ]);
+        } catch (\Throwable $th) {
+            return json_encode([
+                "status" => "error",
+                "mensagem" => "Erro ao realizar o Logout"]);
+        }
+    }
+
+
 }

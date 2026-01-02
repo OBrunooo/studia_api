@@ -13,8 +13,9 @@ Route::middleware('api')->group(function () {
 
     Route::post("/login", [LoginRegisterController::class, "login"]);
     Route::post("/registrar", [LoginRegisterController::class, "registrar"]);
-
-
+    Route::post("/logout", [LoginRegisterController::class, "logout"]);
+    
+    
     Route::middleware(['auth:sanctum'])->group(function() {
         Route::get("listaConjuntos", [QuestoesController::class, "listaConjuntos"]);
     });
