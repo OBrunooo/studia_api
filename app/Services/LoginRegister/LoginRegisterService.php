@@ -59,10 +59,6 @@ class LoginRegisterService {
         }
     }
 
-    public function logoutUser(string $token) {
-        
-    } 
-
 }
 
 ?>
