@@ -2,7 +2,7 @@
     namespace App\Services\Questoes;
     use App\Models\ConjuntoQuestoes;
     use App\Models\Questoes;
-
+    use App\Models\Temas;
 
 
     class QuestoesService {
@@ -23,7 +23,7 @@
                 "messages" => [
                     [
                         "role" => "system",
-                        "content" => "Você irá receber um texto curto digitado pelo usuário que representa um tema para gerar questões. O texto pode estar com erros ortográficos, informalidades ou redundâncias. Sua tarefa é corrigir a ortografia, remover palavras desnecessárias e fazer uma leve abstração para transformar o texto em um tema claro, direto e padronizado, mantendo o sentido geral sem adicionar detalhes inexistentes. Retorne apenas o tema final, curto e objetivo. Exemplos: \"logika de programacao\"→\"lógica de programação\"; \"entender como funciona logika de programacao\"→\"lógica de programação\"; \"quero questao sobre como funciona a lei da gravdede\"→\"lei da gravidade\". Responda sempre com um único tema."
+                        "content" => 'Você irá receber um texto curto digitado pelo usuário que supostamente representa um tema para geração de questões. O texto pode conter erros ortográficos, informalidades, redundâncias ou estar mal formulado. Sua tarefa é analisar se o texto representa um tema conceitual válido para geração de questões. Um tema válido deve representar um assunto, conceito, área de estudo, fenômeno ou conhecimento estruturado. Palavras isoladas, objetos genéricos, termos vagos ou sem contexto conceitual não são temas válidos. Se o texto não representar um tema válido, responda apenas com a palavra INVALIDO. Se o texto for válido, corrija erros ortográficos, remova palavras desnecessárias e faça uma leve abstração para padronizar o tema, sem adicionar informações que não estejam implícitas no texto. Retorne apenas um único tema curto, claro e objetivo. Exemplos: "logika de programacao" → "lógica de programação"; "entender como funciona logika de programacao" → "lógica de programação"; "quero questao sobre como funciona a lei da gravdede" → "lei da gravidade"; "mouse" → INVALIDO; "computador" → INVALIDO; "história do brasil colonial" → "brasil colonial". Responda sempre com apenas uma linha.'
                     ],
                     [
                         "role" => "user",
@@ -292,6 +292,7 @@
 
         public function armazenarQuestoes($dados) {
             $questoes = $dados["questoes"];
+            $idConjuntos = [];
             for($i=0; $i <= 34; $i) {
                 
                 $conjuntoQuestoesId = [];
@@ -307,8 +308,7 @@
                     $conjuntoQuestoesId[] = $questao->id; 
                 }
                 
-                ConjuntoQuestoes::create([
-                    'user_id' => 1,
+                $conjunto = ConjuntoQuestoes::create([
                     'questao1_id' => $conjuntoQuestoesId[0],
                     'questao2_id' => $conjuntoQuestoesId[1],
                     'questao3_id' => $conjuntoQuestoesId[2],
@@ -317,12 +317,61 @@
                     'questao6_id' => $conjuntoQuestoesId[5],
                     'questao7_id' => $conjuntoQuestoesId[6]
                 ]);
+                array_push($idConjuntos, $conjunto->id);
             };
+
+            $conjuntoQuestoesId = [];
+            $conjunto = ConjuntoQuestoes::where("id", "=", $idConjuntos[0])->first();
+            array_push($conjuntoQuestoesId, $conjunto->questao1_id,$conjunto->questao2_id);
+            $conjunto = ConjuntoQuestoes::where("id", "=", $idConjuntos[1])->first();
+            array_push($conjuntoQuestoesId, $conjunto->questao1_id,$conjunto->questao2_id);
+            $conjunto = ConjuntoQuestoes::where("id", "=", $idConjuntos[2])->first();
+            array_push($conjuntoQuestoesId, $conjunto->questao1_id,$conjunto->questao2_id,$conjunto->questao3_id);            
+            
+            $conjunto = ConjuntoQuestoes::create([
+                'questao1_id' => $conjuntoQuestoesId[0],
+                'questao2_id' => $conjuntoQuestoesId[1],
+                'questao3_id' => $conjuntoQuestoesId[2],
+                'questao4_id' => $conjuntoQuestoesId[3],
+                'questao5_id' => $conjuntoQuestoesId[4],
+                'questao6_id' => $conjuntoQuestoesId[5],
+                'questao7_id' => $conjuntoQuestoesId[6]
+            ]);
+            array_push($idConjuntos, $conjunto->id);  
+            
+            $conjuntoQuestoesId = [];
+            $conjunto = ConjuntoQuestoes::where("id", "=", $idConjuntos[2])->first();
+            array_push($conjuntoQuestoesId, $conjunto->questao4_id,$conjunto->questao5_id);
+            $conjunto = ConjuntoQuestoes::where("id", "=", $idConjuntos[3])->first();
+            array_push($conjuntoQuestoesId, $conjunto->questao1_id,$conjunto->questao2_id);
+            $conjunto = ConjuntoQuestoes::where("id", "=", $idConjuntos[4])->first();
+            array_push($conjuntoQuestoesId, $conjunto->questao1_id,$conjunto->questao2_id,$conjunto->questao3_id);            
+            
+            $conjunto = ConjuntoQuestoes::create([
+                'questao1_id' => $conjuntoQuestoesId[0],
+                'questao2_id' => $conjuntoQuestoesId[1],
+                'questao3_id' => $conjuntoQuestoesId[2],
+                'questao4_id' => $conjuntoQuestoesId[3],
+                'questao5_id' => $conjuntoQuestoesId[4],
+                'questao6_id' => $conjuntoQuestoesId[5],
+                'questao7_id' => $conjuntoQuestoesId[6]
+            ]);
+            array_push($idConjuntos, $conjunto->id);             
+
+            Temas::create([
+                "nome" => $dados["tema"],
+                "conjunto1_id" => $idConjuntos[0],
+                "conjunto2_id" => $idConjuntos[1],
+                "conjunto3_id" => $idConjuntos[2],
+                "conjunto4_id" => $idConjuntos[3],
+                "conjunto5_id" => $idConjuntos[4],
+                "conjunto6_id" => $idConjuntos[5],
+                "conjunto7_id" => $idConjuntos[6]
+            ]);
+            
         }
 
-        public function listaConjuntos($userId) {
 
-        }
 
     }
 

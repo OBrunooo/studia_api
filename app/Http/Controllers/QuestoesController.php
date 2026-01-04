@@ -19,6 +19,13 @@ class QuestoesController extends Controller {
         $tema = $request->query("tema");
 
         $resultado = $this->questoesService->verificarTema($tema);
+        
+        if($resultado["tema"] == "INVALIDO") {
+            return json_encode([
+                "status" => "error",
+                "message" => "Digite um tema válido"
+            ]);
+        }
         return redirect()->route("gerarQuestoes.get", ["tema" => $resultado["tema"], "token" => $resultado["token"]]);
     }
 
@@ -27,28 +34,30 @@ class QuestoesController extends Controller {
         $token = $request->query("token");
 
         if (isset($tema)) {
-            $tema = $request->query("tema");
             $resultado = $this->questoesService->gerarQuestoes($tema, $token);
-            return redirect()->route("verificarQuestoes.get", ["questoes" => $resultado["questoes"], "token" => $resultado["token"]]);
+            return redirect()->route("verificarQuestoes.get", ["tema" => $tema, "questoes" => $resultado["questoes"], "token" => $resultado["token"]]);
         }
     }
 
     public function verificarQuestoes(Request $request) {
         $questoes = $request->query("questoes");
         $token = $request->query("token");
+        $tema = $request->query("tema");
 
         if(isset($questoes)) {
             $resultado =  $this->questoesService->verificarQuestoes($questoes, $token);
-            return redirect()->route("verificarConjunto.get", ["questoes" => $resultado['questoes'], "token" => $resultado['token']]);
+            return redirect()->route("verificarConjunto.get", ["tema"=> $tema, "questoes" => $resultado['questoes'], "token" => $resultado['token']]);
         }
     }
 
     public function verificarConjunto(Request $request) {
         $questoes = $request->query("questoes");
         $token = $request->query("token");
+        $tema = $request->query("tema");
+
 
         $resultado = $this->questoesService->verificarConjunto($questoes, $token);
-        return redirect()->route("storageQuestoes.get", ["dados" => $resultado]);
+        return redirect()->route("storageQuestoes.get", ["tema" => $tema, "dados" => $resultado]);
     }
 
     public function storage(Request $request) {
@@ -56,9 +65,5 @@ class QuestoesController extends Controller {
         return $this->questoesService->armazenarQuestoes($dados);
     }
 
-    public function listaConjuntos(Request $request) {
-        $user = Auth::user()->name;
-        return json_encode($user);
-    }
 
 }

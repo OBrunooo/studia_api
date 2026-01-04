@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('tema', function (Blueprint $table) {
-            $table->string("nome")->
-            $table->timestamps();
+        Schema::table('conjunto_questoes', function (Blueprint $table) {
+            $table->dropForeign(['user_id']);
+            $table->dropColumn('user_id');
         });
     }
 
@@ -22,7 +22,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('tema', function (Blueprint $table) {
+        Schema::table('conjunto_questoes', function (Blueprint $table) {
             //
         });
     }
