@@ -20,6 +20,10 @@ class QuestoesController extends Controller {
 
         $resultado = $this->questoesService->verificarTema($tema);
         
+        if($resultado["existeTema"] == true) {
+            return ["temaId" => $resultado["temaId"]];
+        }
+
         if($resultado["tema"] == "INVALIDO") {
             return json_encode([
                 "status" => "error",
@@ -28,6 +32,7 @@ class QuestoesController extends Controller {
         }
         return redirect()->route("gerarQuestoes.get", ["tema" => $resultado["tema"], "token" => $resultado["token"]]);
     }
+
 
     public function gerarQuestoes(Request $request) {  
         $tema = $request->query("tema");
@@ -57,11 +62,13 @@ class QuestoesController extends Controller {
 
 
         $resultado = $this->questoesService->verificarConjunto($questoes, $token);
-        return redirect()->route("storageQuestoes.get", ["tema" => $tema, "dados" => $resultado]);
+        $resultado["tema"] = $tema;
+        return redirect()->route("storageQuestoes.get", ["dados" => $resultado]);
     }
 
     public function storage(Request $request) {
-        $dados = $request->input("dados");
+        $dados = $request->query("dados");
+
         return $this->questoesService->armazenarQuestoes($dados);
     }
 

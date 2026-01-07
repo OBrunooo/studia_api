@@ -52,13 +52,30 @@
             
             curl_close($ch);
             $response = json_decode($response, true);
-            return [
-                "tema" => $response["choices"][0]["message"]["content"],
-                "token" => [
-                    "entrada" => $response["usage"]["prompt_tokens"],
-                    "saida" => $response["usage"]["completion_tokens"],
-                    ]
-            ];
+            $tema = $response["choices"][0]["message"]["content"];
+
+            $buscaTema = Temas::where("nome", "=", $tema)->first();
+            if(isset($buscaTema)) {
+
+                return [
+                    "tema" => $tema,
+                    "token" => [
+                        "entrada" => $response["usage"]["prompt_tokens"],
+                        "saida" => $response["usage"]["completion_tokens"],
+                    ],
+                    "existeTema" => true,
+                    "temaId" => $buscaTema->id
+                ];                
+            } else {
+                return [
+                    "tema" => $tema,
+                    "token" => [
+                        "entrada" => $response["usage"]["prompt_tokens"],
+                        "saida" => $response["usage"]["completion_tokens"],
+                    ],
+                    "existeTema" => false
+                ];
+            }
             exit;
         }
 
