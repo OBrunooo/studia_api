@@ -3,6 +3,9 @@
     use App\Models\ConjuntoQuestoes;
     use App\Models\Questoes;
     use App\Models\Temas;
+    use App\Models\User_tema;
+    use Illuminate\Support\Facades\Auth;
+
 
 
     class QuestoesService {
@@ -57,14 +60,15 @@
             $buscaTema = Temas::where("nome", "=", $tema)->first();
             if(isset($buscaTema)) {
 
+                $id = Auth::user()->id;
+
+                User_tema::create([
+                    "user_id" => $id,
+                    "tema_id" => $buscaTema->id
+                ]);
                 return [
                     "tema" => $tema,
-                    "token" => [
-                        "entrada" => $response["usage"]["prompt_tokens"],
-                        "saida" => $response["usage"]["completion_tokens"],
-                    ],
-                    "existeTema" => true,
-                    "temaId" => $buscaTema->id
+                    "existeTema" => true
                 ];                
             } else {
                 return [
@@ -375,7 +379,7 @@
             ]);
             array_push($idConjuntos, $conjunto->id);             
 
-            Temas::create([
+            $tema = Temas::create([
                 "nome" => $dados["tema"],
                 "conjunto1_id" => $idConjuntos[0],
                 "conjunto2_id" => $idConjuntos[1],
@@ -386,9 +390,18 @@
                 "conjunto7_id" => $idConjuntos[6]
             ]);
             
+            $id = Auth::user()->id;
+
+            User_tema::create([
+                "user_id" => $id,
+                "tema_id" => $tema->id
+            ]);            
+
+            return [
+                "status" => "success",
+                "tema" => $dados["tema"]
+            ];
         }
-
-
 
     }
 

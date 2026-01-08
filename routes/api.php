@@ -2,6 +2,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\QuestoesController;
 use App\Http\Controllers\LoginRegisterController;
+use App\Http\Controllers\TemasController;
+
 use App\Models\User;
 
 Route::middleware('api')->group(function () {
@@ -16,8 +18,11 @@ Route::middleware('api')->group(function () {
     
     
     Route::middleware(['auth:sanctum'])->group(function() {
+        Route::get("/gerarOuBuscarTema", [QuestoesController::class,"verificarTema"])->name("verificaTema.get");
         Route::get("listaConjuntos", [QuestoesController::class, "listaConjuntos"]);
         Route::post("/logout", [LoginRegisterController::class, "logout"]);
+        Route::get("/temasUsuario", [TemasController::class, "temas"]);
+        Route::get("/quetoesTema", [TemasController::class, "questoes"]);
     });
 
     Route::get("/teste", function() {

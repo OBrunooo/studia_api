@@ -19,9 +19,11 @@ class QuestoesController extends Controller {
         $tema = $request->query("tema");
 
         $resultado = $this->questoesService->verificarTema($tema);
-        
+
         if($resultado["existeTema"] == true) {
-            return ["temaId" => $resultado["temaId"]];
+            return [
+                "status" => "success",
+                "tema" => $resultado["tema"]];
         }
 
         if($resultado["tema"] == "INVALIDO") {
