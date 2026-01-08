@@ -26,7 +26,12 @@
 
         public function questoesTema($idTema) {
             $tema = Temas::where("id", "=", $idTema)->first();
-            
+            if(!isset($tema)) {
+                return json_encode([
+                    'status'   => 'error',
+                    'mensagem' => "Id inválido"                    
+                ]);
+            }
             $questoes = [
                 "conjunto1_id" => ConjuntoQuestoes::where("id", "=", $tema["conjunto1_id"])->first(),
                 "conjunto2_id" => ConjuntoQuestoes::where("id", "=", $tema["conjunto2_id"])->first(),

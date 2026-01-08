@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Services\Temas\TemasService;
+use Illuminate\Support\Facades\Validator;
 
 class TemasController extends Controller
 {
@@ -18,6 +19,19 @@ class TemasController extends Controller
     }
 
     public function questoes(Request $request) {
+        $validator = Validator::make($request->all(), [
+            'id' => 'required|integer'
+        ], [
+            'id.required' => 'Id é obrigatório',
+            'id.integer'  => 'Id deve ser um número inteiro'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status'   => 'error',
+                'mensagem' => $validator->errors()->first()
+            ], 422);
+        }
         $id = $request->query("id");
         return $this->temasService->questoesTema($id);
     }
