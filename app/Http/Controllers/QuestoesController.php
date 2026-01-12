@@ -69,8 +69,7 @@ class QuestoesController extends Controller {
     }
 
     public function storage(Request $request) {
-        $dados = $request->query("dados");
-
+        $dados = $request->input("dados");
         return $this->questoesService->armazenarQuestoes($dados);
     }
 

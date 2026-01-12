@@ -35,4 +35,10 @@ class TemasController extends Controller
         $id = $request->query("id");
         return $this->temasService->questoesTema($id);
     }
+
+    public function conclusao(Request $request) {
+        $id = $request->query("id");
+
+        return json_encode($this->temasService->concluirConjunto($id));
+    }
 }

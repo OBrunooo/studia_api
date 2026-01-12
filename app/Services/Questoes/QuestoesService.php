@@ -4,6 +4,7 @@
     use App\Models\Questoes;
     use App\Models\Temas;
     use App\Models\User_tema;
+    use App\Models\User_conclusao_conjunto;
     use Illuminate\Support\Facades\Auth;
 
 
@@ -379,6 +380,16 @@
             ]);
             array_push($idConjuntos, $conjunto->id);             
 
+
+
+            for($i = 0; $i < count($idConjuntos); $i ++) {
+                User_conclusao_conjunto::create([
+                    "conjunto_id" => $idConjuntos[$i],
+                    "user_id" => Auth::user()->id,
+                ]);
+            }
+
+
             $tema = Temas::create([
                 "nome" => $dados["tema"],
                 "conjunto1_id" => $idConjuntos[0],
@@ -395,7 +406,9 @@
             User_tema::create([
                 "user_id" => $id,
                 "tema_id" => $tema->id
-            ]);            
+            ]);         
+            
+
 
             return [
                 "status" => "success",

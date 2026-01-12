@@ -23,6 +23,8 @@ Route::middleware('api')->group(function () {
         Route::post("/logout", [LoginRegisterController::class, "logout"]);
         Route::get("/temasUsuario", [TemasController::class, "temas"]);
         Route::get("/quetoesTema", [TemasController::class, "questoes"]);
+        Route::post("/conclusaoConjunto", [TemasController::class, "conclusao"]);
+        Route::get("/storageQuestoes",[QuestoesController::class, "storage"])->name("storageQuestoes.get");
     });
 
     Route::get("/teste", function() {
