@@ -3,6 +3,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\QuestoesController;
 use App\Http\Controllers\LoginRegisterController;
 use App\Http\Controllers\TemasController;
+use App\Http\Controllers\UserController;
+
 
 use App\Models\User;
 
@@ -25,7 +27,10 @@ Route::middleware('api')->group(function () {
         Route::get("/quetoesTema", [TemasController::class, "questoes"]);
         Route::post("/conclusaoConjunto", [TemasController::class, "conclusao"]);
         Route::get("/storageQuestoes",[QuestoesController::class, "storage"])->name("storageQuestoes.get");
-    });
+        Route::post("/atualizaSenha",[UserController::class, "atualizaSenha"]);
+        Route::post("/atualizaAvatar",[UserController::class, "atualizaAvatar"]);
+
+        });
 
     Route::get("/teste", function() {
         User::create([
