@@ -4,7 +4,7 @@ use App\Http\Controllers\QuestoesController;
 use App\Http\Controllers\LoginRegisterController;
 use App\Http\Controllers\TemasController;
 use App\Http\Controllers\UserController;
-
+use App\Http\Controllers\PasswordResetController;
 
 use App\Models\User;
 
@@ -29,15 +29,9 @@ Route::middleware('api')->group(function () {
         Route::get("/storageQuestoes",[QuestoesController::class, "storage"])->name("storageQuestoes.get");
         Route::post("/atualizaSenha",[UserController::class, "atualizaSenha"]);
         Route::post("/atualizaAvatar",[UserController::class, "atualizaAvatar"]);
-
         });
-
-    Route::get("/teste", function() {
-        User::create([
-            "name" => "oBruno",
-            "email" => "obrunogmr07@gmail.com",
-            "password" => "obrunogmr07@gmail.com"
-        ]);
-    });
+        
+    Route::post('/forgot-password', [PasswordResetController::class, 'sendToken']);
+    Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
 
 });
