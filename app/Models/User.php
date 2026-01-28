@@ -65,7 +65,7 @@ public function sendPasswordResetToken($token)
         public function toMail($notifiable)
         {
             return (new \Illuminate\Notifications\Messages\MailMessage)
-                ->subject('Recuperação de senha - StudIA')
+                ->subject('🔐 Recuperação de senha - StudIA')
                 ->view('emails.reset-password', [
                     'token' => $this->token
                 ]);

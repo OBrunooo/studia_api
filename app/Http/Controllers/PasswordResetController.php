@@ -53,16 +53,16 @@ public function resetPassword(Request $request)
     $request->validate([
         'email' => 'required|email',
         'token' => 'required|string|size:6',
-        'password' => 'required|min:8|confirmed',
+        'senha' => 'required|min:8|confirmed',
     ], [
         "email.required" => "O campo email é obrigatório",
         "email.email" => "Digite um email válido",
         "token.required" => "O campo token é obrigatório",
         "token.string" => "Token inválido",
         "token.size" => "Token inválido",
-        "password.required" => "O campo password é obrigatório",
-        "password.confirmed" => "A confirmação do campo de senha não corresponde",
-        "password.min" => "A senha precisa possuir no mínimo 6 caracteres" 
+        "senha.required" => "O campo senha é obrigatório",
+        "senha.confirmed" => "A confirmação do campo de senha não corresponde",
+        "senha.min" => "A senha precisa possuir no mínimo 6 caracteres" 
     ]);
 
 
@@ -87,7 +87,7 @@ public function resetPassword(Request $request)
         return response()->json(['message' => 'Usuário não encontrado'], 404);
     }
 
-    $user->password = Hash::make($request->password);
+    $user->password = Hash::make($request->senha);
     $user->save();
 
     // invalida token
