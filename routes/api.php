@@ -8,30 +8,26 @@ use App\Http\Controllers\PasswordResetController;
 
 use App\Models\User;
 
-Route::middleware('api')->group(function () {
-    Route::get("/gerarOuBuscarTema", [QuestoesController::class,"verificarTema"])->name("verificaTema.get");
-    Route::get("/gerarQuestoes", [QuestoesController::class,"gerarQuestoes"])->name("gerarQuestoes.get");
-    Route::get("/verificarQuestoes",[QuestoesController::class, "verificarQuestoes"])->name("verificarQuestoes.get");
-    Route::get("/verificarConjunto",[QuestoesController::class, "verificarConjunto"])->name("verificarConjunto.get");
-    Route::get("/storageQuestoes",[QuestoesController::class, "storage"])->name("storageQuestoes.get");
+Route::get("/questoes/gerar", [QuestoesController::class,"gerarQuestoes"])->name("gerarQuestoes.get");
+Route::get("/questoes/verificar",[QuestoesController::class, "verificarQuestoes"])->name("verificarQuestoes.get");
+Route::get("/conjuntos/verificar",[QuestoesController::class, "verificarConjunto"])->name("verificarConjunto.get");
+Route::get("/questoes/storage",[QuestoesController::class, "storage"])->name("storageQuestoes.get");
 
-    Route::post("/registrar", [LoginRegisterController::class, "registrar"]);
-    Route::post("/login", [LoginRegisterController::class, "login"]);
-    
-    
-    Route::middleware(['auth:sanctum'])->group(function() {
-        Route::get("/gerarOuBuscarTema", [QuestoesController::class,"verificarTema"])->name("verificaTema.get");
-        Route::get("listaConjuntos", [QuestoesController::class, "listaConjuntos"]);
-        Route::post("/logout", [LoginRegisterController::class, "logout"]);
-        Route::get("/temasUsuario", [TemasController::class, "temas"]);
-        Route::get("/quetoesTema", [TemasController::class, "questoes"]);
-        Route::post("/conclusaoConjunto", [TemasController::class, "conclusao"]);
-        Route::get("/storageQuestoes",[QuestoesController::class, "storage"])->name("storageQuestoes.get");
-        Route::post("/atualizaSenha",[UserController::class, "atualizaSenha"]);
-        Route::post("/atualizaAvatar",[UserController::class, "atualizaAvatar"]);
-        });
-        
-    Route::post('/forgot-password', [PasswordResetController::class, 'sendToken']);
-    Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
+Route::post("/registrar", [LoginRegisterController::class, "registrar"]);
+Route::post("/login", [LoginRegisterController::class, "login"]);
 
-});
+
+Route::middleware(['auth:sanctum'])->group(function() {
+    Route::get("/temas/verificar-ou-gerar", [QuestoesController::class,"verificarTema"])->name("verificaTema.get");
+    Route::get("/conjuntos/listar", [QuestoesController::class, "listaConjuntos"]);
+    Route::get("/temas", [TemasController::class, "temas"]);
+    Route::get("/temas/questoes", [TemasController::class, "questoes"]);
+    Route::post("conjuntos/concluir", [TemasController::class, "conclusao"]);
+    Route::post("/usuarios/senha",[UserController::class, "atualizaSenha"]);
+    Route::post("/usuarios/avatar",[UserController::class, "atualizaAvatar"]);
+    Route::post("/logout", [LoginRegisterController::class, "logout"]);
+    });
+    
+Route::post('/forgot-password', [PasswordResetController::class, 'sendToken']);
+Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
+
