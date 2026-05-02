@@ -4,13 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class User_conclusao_conjunto extends Model
+class UserTema extends Model
 {
-    protected $table = "User_conclusao_conjunto";
+    protected $table = "user_tema";
 
     protected $fillable = [
-        'conjunto_id',
         'user_id',
+        'tema_id',
         'conclusao'
-    ];    
+    ];
+
 }

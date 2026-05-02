@@ -19,7 +19,7 @@ class PasswordResetController extends Controller {
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
-            return json_encode([
+            return response()->json([
                 'status' => "error",
                 'mensagem' => 'Usuário não encontrado'
                 ], 404);
@@ -42,10 +42,10 @@ class PasswordResetController extends Controller {
         // envia email (método fica no Model)
         $user->sendPasswordResetToken($caracteres);
 
-        return json_encode([
-                "status" => "sucesso",
-                'mensagem' => 'Token enviado para o email'
-                ]);
+        return response()->json([
+            "status" => "sucesso",
+            'mensagem' => 'Token enviado para o email'
+        ], 200);
     }
 
 public function resetPassword(Request $request)
@@ -62,7 +62,7 @@ public function resetPassword(Request $request)
         "token.size" => "Token inválido",
         "senha.required" => "O campo senha é obrigatório",
         "senha.confirmed" => "A confirmação do campo de senha não corresponde",
-        "senha.min" => "A senha precisa possuir no mínimo 6 caracteres" 
+        "senha.min" => "A senha precisa possuir no mínimo 8 caracteres" 
     ]);
 
 
@@ -87,7 +87,7 @@ public function resetPassword(Request $request)
         return response()->json(['message' => 'Usuário não encontrado'], 404);
     }
 
-    $user->password = Hash::make($request->senha);
+    $user->password = $request->input("senha");
     $user->save();
 
     // invalida token
@@ -97,7 +97,7 @@ public function resetPassword(Request $request)
 
     return response()->json([
         'message' => 'Senha redefinida com sucesso'
-    ]);
+    ], 200);
 }
 
 }

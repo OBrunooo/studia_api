@@ -4,17 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use App\Services\LoginRegister\LoginRegisterService;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 
 class LoginRegisterController extends Controller
 {
 
-    protected $loginRegisterService;
-
-    public function __construct (LoginRegisterService $loginRegisterService) {
-        $this->loginRegisterService = $loginRegisterService;
-    }
 
     public function login(Request $request) {
         $validator = Validator::make($request->all(),[
@@ -27,12 +23,27 @@ class LoginRegisterController extends Controller
         ]);
         
         if ($validator->fails()) {
-            return json_encode([
+            return response()->json([
                 "errors" => $validator->errors()
             ], 422);
         }
 
-        return json_encode($this->loginRegisterService->verificaLogin($request->email, $request->senha));
+        if (!Auth::attempt([
+            "email" => $request->input("email"), 
+            "password" => $request->input("senha")])) {
+            return response()->json([
+                "status" => "error",
+                "message" => "Credenciais inválidas"
+            ], 401);
+        }
+
+        $user = Auth::user();
+        $token = $user->createToken("flutter")->plainTextToken;
+        
+        return response()->json([
+            "user" => $user,
+            "token" => $token
+        ], 200);        
     }
 
     public function registrar(Request $request) {
@@ -50,27 +61,58 @@ class LoginRegisterController extends Controller
             "nome.min" => "Nome deve conter no mínimo 3 caracteres"
         ]);
         
-        if ($validator->fails()) {
-            return json_encode([
-                "errors" => $validator->errors()
-            ], 422);
-        }      
-        
-        return json_encode($this->loginRegisterService->registrarUser($request->email, $request->senha, $request->nome));
+        try {
+            if ($validator->fails()) {
+                return response()->json([
+                    "errors" => $validator->errors()
+                ], 422);
+            }
+    
+            $user = User::create([
+                "email" => $request->input("email"),
+                "password" => $request->input("senha"),
+                "name" => $request->input("nome")
+            ]);
+    
+            if (!Auth::attempt([
+                "email" => $request->input("email"), 
+                "password" => $request->input("senha")])) {
+                return response()->json([
+                    "status" => "error",
+                    "message" => "Erro ao registrar usuário"
+                ], 500);
+            }
+    
+            $user = Auth::user();
+    
+            $token = $user->createToken("flutter")->plainTextToken;
+    
+            return response()->json([
+                "user" => $user,
+                "token" => $token
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                "success" => false,
+                "message" => "Ocorreu um erro para registrar usuário"
+            ], 500);
+        }
+
     }
 
     public function logout(Request $request) {
         try {
             $request->user()->currentAccessToken()->delete();
 
-            return json_encode([
+            return response()->json([
                 "status" => "success",
                 "mensagem" => "Logout realizado com sucesso!"
-            ]);
+            ], 200);
         } catch (\Throwable $th) {
-            return json_encode([
+            return response()->json([
                 "status" => "error",
-                "mensagem" => "Erro ao realizar o Logout"]);
+                "mensagem" => "Erro ao realizar o Logout"
+            ], 500);
         }
     }
 
