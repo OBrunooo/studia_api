@@ -50,28 +50,29 @@ class User extends Authenticatable
     }
 
 
-public function sendPasswordResetToken($token)
-{
-    $this->notify(new class($token) extends Notification {
+    public function sendPasswordResetToken($token)
+    {
+        $this->notify(new class($token) extends Notification {
 
-        public function __construct(private string $token) {}
+            public function __construct(private string $token) {}
 
-        public function via($notifiable)
-        {
-            return ['mail'];
-        }
+            public function via($notifiable)
+            {
+                return ['mail'];
+            }
 
-        public function toMail($notifiable)
-        {
-            return (new \Illuminate\Notifications\Messages\MailMessage)
-                ->subject('🔐 Recuperação de senha - StudIA')
-                ->view('emails.reset-password', [
-                    'token' => $this->token
-                ]);
-        }
-    });
-}
+            public function toMail($notifiable)
+            {
+                return (new \Illuminate\Notifications\Messages\MailMessage)
+                    ->subject('🔐 Recuperação de senha - StudIA')
+                    ->view('emails.reset-password', [
+                        'token' => $this->token
+                    ]);
+            }
+        });
+    }
 
-
-
+    public function temasUser() {
+        return UserTema::where("user_id", $this->id)->pluck("tema_id")->toArray();
+    }    
 }

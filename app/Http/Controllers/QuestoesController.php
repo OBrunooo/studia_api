@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\UserTema;
 use App\Models\Modelo;
 use App\Models\Token;
-use App\Models\Temas;
+use App\Models\Tema;
 use App\Models\Questoes;
 use App\Models\ConjuntoQuestoes;
 use App\Models\UserConclusaoConjunto;
@@ -90,7 +90,7 @@ class QuestoesController extends Controller {
                 ], 500);
             }
 
-            $buscaTema = Temas::where("nome", "=", $tema)->first();
+            $buscaTema = Tema::where("nome", "=", $tema)->first();
             if($buscaTema !== null) {
                 $userId = Auth::user()->id;
 
@@ -511,7 +511,7 @@ class QuestoesController extends Controller {
                     ]);
                 }
 
-                $temaModel = Temas::create([
+                $temaModel = Tema::create([
                     "nome" => $tema,
                     "conjunto1_id" => $idConjuntos[0],
                     "conjunto2_id" => $idConjuntos[1],
