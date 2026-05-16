@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class ConjuntoQuestoes extends Model
 {
     protected $table = "conjunto_questoes";
+    CONST TABLE = "conjunto_questoes";
 
-
-        protected $fillable = [
+    protected $fillable = [
         'user_id',
         'questao1_id',
         'questao2_id',
@@ -19,4 +19,17 @@ class ConjuntoQuestoes extends Model
         'questao6_id',
         'questao7_id',
     ];
+
+    public function questoesConjunto() {
+        $questoes = [
+            $this->questao1_id,
+            $this->questao2_id,
+            $this->questao3_id,
+            $this->questao4_id,
+            $this->questao5_id,
+            $this->questao6_id,
+            $this->questao7_id,
+        ];
+        return $questoes;
+    }
 }

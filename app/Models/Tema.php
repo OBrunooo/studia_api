@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\ConjuntoQuestoes;
 class Tema extends Model
 {
     protected $table = "temas";
@@ -19,7 +18,7 @@ class Tema extends Model
         "conjunto7_id"
     ];
 
-    public function listarConjuntos() {
+    public function conjuntosTema() {
         try {   
             $ids = [
                 $this->conjunto1_id,
@@ -31,9 +30,7 @@ class Tema extends Model
                 $this->conjunto7_id,
             ];
 
-            $conjuntos = ConjuntoQuestoes::whereIn("id", $ids)->pluck("id")->toArray();
-
-            return $conjuntos;
+            return $ids;
         } catch (\Exception $e) {
             return response()->json(["error" => "Erro ao listar conjuntos"], 500);
         }

@@ -8,7 +8,6 @@ class Token extends Model
 {
     protected $fillable = [
         "modelo_id",
-        "quantidade",
         "input",
         "output"
     ];

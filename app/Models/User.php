@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notification;
-
+use App\Models\Tema;
+use App\Models\UserTema;
+use Illuminate\Support\Facades\DB;
+use App\Models\UserConclusaoConjunto;
 
 class User extends Authenticatable
 {
@@ -73,6 +75,25 @@ class User extends Authenticatable
     }
 
     public function temasUser() {
-        return UserTema::where("user_id", $this->id)->pluck("tema_id")->toArray();
-    }    
+        return DB::table(UserTema::TABLE. " as ut")
+        ->join("temas as t", "t.id", "=", "ut.tema_id")
+        ->where("ut.user_id", $this->id)
+        ->select("ut.tema_id as id", "t.nome as nome")
+        ->get();
+    }
+    
+    public function conclusaoTemasUser($temaId) {
+        try {
+        $tema = Tema::find($temaId);
+        $conjuntos = $tema->conjuntosTema();
+        if(empty($conjuntos)) {
+            return null;
+        }
+        $conjuntoConcluido = UserConclusaoConjunto::where("user_id", $this->id)->whereIn("conjunto_id", $conjuntos)->where("conclusao", true)->get()->toArray();
+        $porcentagemConclusao = (int) ((count($conjuntoConcluido) / count($conjuntos)) * 100);
+        return $porcentagemConclusao;
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
 }

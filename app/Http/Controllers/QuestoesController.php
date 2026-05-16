@@ -16,114 +16,6 @@ use App\Models\UserConclusaoConjunto;
 
 class QuestoesController extends Controller {
 
-    public function buscarGerarQuestoesTema (Request $request) {
-        try {
-            $tema = $request->input("tema");
-            ini_set('max_execution_time', 300); 
-            set_time_limit(300);
-
-            $ch = curl_init();
-
-            curl_setopt($ch, CURLOPT_URL, "https://api.openai.com/v1/responses");
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-            curl_setopt($ch, CURLOPT_POST, 1);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 300);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
-                "model" => "gpt-5-nano",
-                "input" => [
-                    [
-                        "role" => "system",
-                        "content" => 'Você receberá um texto curto que representa um possível tema para geração de questões. Um tema válido pode ser um assunto, conceito, área de estudo ou tecnologia, mesmo que seja apenas uma única palavra (ex: "Laravel", "fotossíntese", "derivadas"). Um tema inválido é algo genérico, objeto físico ou termo sem contexto conceitual (ex: "mouse", "cadeira", "coisa"). Se for inválido, responda apenas com INVALIDO. Se for válido, corrija erros ortográficos, remova excessos e padronize para um tema curto e claro, sem adicionar informações novas. Em caso de dúvida, considere como válido. Responda sempre com apenas uma linha.'
-                    ],
-                    [
-                        "role" => "user",
-                        "content" => $tema
-                    ],
-                ],
-            ]));
-
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                "Accept: application/json",
-                "Content-Type: application/json",
-                "Authorization: Bearer " . env('OPENAI_API_KEY')
-            ]);
-
-            $response = curl_exec($ch);
-            if($response === false){
-                curl_close($ch);
-                return response()->json([
-                    "success" => false,
-                    "message" => "Ocorreu um erro ao realizar a conexão com o agente IA",
-                    "errorMessage" => curl_error($ch)
-                ], 500);
-            };
-            
-            curl_close($ch);
-            $response = json_decode($response, true);
-
-            if($response === null){
-                return response()->json([
-                    "success" => false,
-                    "message" => "Ocorreu um erro ao realizar a conexão com o agente IA"
-                ], 500);
-            };
-            if (! isset($response['usage']['input_tokens'], $response['usage']['output_tokens'], $response['output'][1]['content'][0]['text'])) {
-                return response()->json([
-                    "success" => false,
-                    "message" => "Resposta inválida do agente IA",
-                ], 500);
-            }
-            $tokens = [
-                "gpt-5-nano" => [
-                    "input" => (int) $response["usage"]["input_tokens"],
-                    "output" => (int) $response["usage"]["output_tokens"] 
-                ]
-            ]; 
-            $tema = $response["output"][1]["content"][0]["text"];
-
-            if($tema == "INVALIDO") {
-                self::armazenaTokens($tokens);           
-                return response()->json([
-                    "success" => false,
-                    "message" => "O tema digitado é inválido",
-                    "response" => $response
-                ], 500);
-            }
-
-            $buscaTema = Tema::where("nome", "=", $tema)->first();
-            if($buscaTema !== null) {
-                $userId = Auth::user()->id;
-
-                $verificacao = UserTema::where("user_id", $userId)
-                ->where("tema_id", $buscaTema->id)->first();
-                if($verificacao !== null) {
-                    self::armazenaTokens($tokens);
-                    return response()->json([
-                        "success" => false,
-                        "message" => "O usuário já está cadastrado no tema $tema"
-                    ], 500);
-                }
-                UserTema::create([
-                    "user_id" => $userId,
-                    "tema_id" => $buscaTema->id
-                ]);
-                self::armazenaTokens($tokens);
-                return response()->json([
-                    "success" => true,
-                    "message" => "O usuário foi cadastrado ao tema com sucesso"
-                ], 200);
-            }
-            return $this->gerarQuestoes($tema, $tokens);
-        } catch (\Throwable $th) {
-            return response()->json([
-                "success" => false,
-                "message" => "Ocorreu um erro ao buscar e gerar questões",
-                "errorMessage" => $th->getMessage(),
-                "errorLine" => $th->getLine()
-            ], 500);
-        }
-    }
-
     public function gerarQuestoes($tema, $tokens) {  
         try {
             ini_set('max_execution_time', 300); 
@@ -546,7 +438,7 @@ class QuestoesController extends Controller {
         }
     }
 
-    private static function armazenaTokens($tokens) {
+    public static function armazenaTokens($tokens) {
         $modelosTokens = array_keys($tokens);
         foreach($modelosTokens as $tm) {
             $modelo = Modelo::where("nome", $tm)->first();
@@ -565,7 +457,6 @@ class QuestoesController extends Controller {
             }
         }          
     }
-
 
     private static function buscaConjuntoQuestoesPorId($id) {
         $conjunto = ConjuntoQuestoes::where("id", "=", $id)->first();
