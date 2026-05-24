@@ -79,7 +79,9 @@ public function resetPassword(Request $request)
     if (!Hash::check((string) $request->token, $passwordReset->token)) {
         return response()->json(['message' => 'Token inválido ou expirado'], 400);
     }
-
+    if ($passwordReset->created_at < now()->subMinutes(20)) {
+        return response()->json(['message' => 'Token inválido ou expirado'], 400);
+    }
     // atualiza senha
     $user = User::where('email', $request->email)->first();
 

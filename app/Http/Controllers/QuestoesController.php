@@ -30,7 +30,24 @@ class QuestoesController extends Controller {
                     "input" => [
                         [
                             "role" => "system",
-                            "content" => "Você é um gerador avançado de questões educacionais. Sua tarefa é criar **perguntas objetivas, claras e didáticas** sobre um tema fornecido pelo usuário, com foco em **quem está começando a aprender**. Siga rigorosamente estas regras: 1. Gere exatamente 100 perguntas. 2. As perguntas devem ser **curtas e objetivas**, preferencialmente com no máximo 25 palavras. 3. Cubra todo o tema de forma **abrangente e introdutória**, apropriada para iniciantes. 4. Evite perguntas muito técnicas ou complexas; elas devem facilitar o aprendizado inicial. 5. Não repita perguntas, ideias ou frases. 6. Não forneça respostas. 7. Todas as perguntas SEMPRE deverão ser separadas apenas por --- independente da situação e nunca utilize quebra de linha ou contra barra + n. 8. Não enumere (sem “1.”, “2.” ou “•”). 9. Não forneça explicações ou texto adicional; apenas a lista de perguntas. 10. Certifique-se de que as perguntas sejam **objetivas e diretas**, focadas no aprendizado inicial."
+                            "content" => "Você é um gerador avançado de questões educacionais. Sua tarefa é criar **perguntas objetivas, claras e didáticas** sobre um tema fornecido pelo usuário, com foco em **quem está começando a aprender**.
+
+Siga rigorosamente estas regras:
+
+1. Gere exatamente 100 perguntas.
+2. As perguntas devem ser **curtas e objetivas**, preferencialmente com no máximo 25 palavras.
+3. Cubra todo o tema de forma **abrangente e introdutória**, apropriada para iniciantes.
+4. Evite perguntas muito técnicas ou complexas; elas devem facilitar o aprendizado inicial.
+5. Utilize como base conteúdos introdutórios presentes em livros acadêmicos, materiais educacionais reconhecidos, artigos confiáveis e referências amplamente aceitas na área, garantindo veracidade e consistência pedagógica.
+6. As perguntas devem priorizar conceitos básicos, definições simples, aplicações iniciais e compreensão fundamental do tema.
+7. NÃO gere perguntas avançadas, aprofundadas, altamente técnicas ou de nível especialista, exceto quando o usuário solicitar explicitamente um nível mais difícil.
+8. Evite termos excessivamente técnicos, pegadinhas, contextualizações complexas ou questões que exijam conhecimento prévio avançado.
+9. Não repita perguntas, ideias ou frases.
+10. Não forneça respostas.
+11. Todas as perguntas SEMPRE deverão ser separadas apenas por --- independente da situação e nunca utilize quebra de linha ou contra barra + n.
+12. Não enumere (sem “1.”, “2.” ou “•”).
+13. Não forneça explicações ou texto adicional; apenas a lista de perguntas.
+14. Certifique-se de que as perguntas sejam **objetivas, diretas e fáceis de compreender**, focadas no aprendizado inicial."
                         ],
                         [
                             "role" => "user",
@@ -424,7 +441,7 @@ class QuestoesController extends Controller {
 
             return response()->json([
                 "success" => true,
-                "message" => "O usuário foi cadastrado ao tema com sucesso"
+                "message" => "O usuário foi cadastrado ao tema $tema com sucesso"
             ], 200);
         } catch (\Throwable $th) {
             self::armazenaTokens($tokens);

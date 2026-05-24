@@ -113,6 +113,4 @@ class LoginRegisterController extends Controller
             ], 500);
         }
     }
-
-
 }

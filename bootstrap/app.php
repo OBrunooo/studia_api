@@ -23,7 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return response()->json([
                     'status' => "error",
                     'message' => 'Usuário não autenticado',
-                ]);
+                ], 401);
             }
         });
     })->create();

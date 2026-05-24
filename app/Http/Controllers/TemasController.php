@@ -12,11 +12,13 @@ use App\Http\Controllers\QuestoesController;
 class TemasController extends Controller {
     public function buscarGerarQuestoesTema (Request $request) {
         $request->validate([
-            "tema" => "required|string|max:255"
+        "tema" => "required|string|min:3|max:255|regex:/^[\pL\pN\s\-\/.,()]+$/u"
         ], [
             "tema.required" => "O campo tema é obrigatório",
             "tema.string" => "O campo tema deve ser uma string",
-            "tema.max" => "O campo tema deve ter no máximo 255 caracteres"
+            "tema.max" => "O campo tema deve ter no máximo 255 caracteres",
+            "tema.min" => "O campo tema deve ter no mínimo 3 caracteres",
+            "tema.regex" => "O campo tema deve conter apenas letras, números, espaços, hífens, barras, vírgulas e parênteses"
         ]);
         try {
             $tema = $request->input("tema");
@@ -86,7 +88,7 @@ class TemasController extends Controller {
                 QuestoesController::armazenaTokens($tokens);           
                 return response()->json([
                     "success" => false,
-                    "message" => "O tema digitado é inválido",
+                    "message" => "O tema $tema digitado é inválido",
                     "response" => $response
                 ], 500);
             }
@@ -108,10 +110,17 @@ class TemasController extends Controller {
                     "user_id" => $userId,
                     "tema_id" => $buscaTema->id
                 ]);
+                $idsConjuntos = $buscaTema->conjuntosTema();
+                foreach ($idsConjuntos as $id) {
+                    UserConclusaoConjunto::create([
+                        "conjunto_id" => $id,
+                        "user_id" => $userId
+                    ]);
+                }
                 QuestoesController::armazenaTokens($tokens);
                 return response()->json([
                     "success" => true,
-                    "message" => "O usuário foi cadastrado ao tema com sucesso"
+                    "message" => "O usuário foi cadastrado ao tema $tema com sucesso"
                 ], 200);
             }
             return (new QuestoesController())->gerarQuestoes($tema, $tokens);
