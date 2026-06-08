@@ -19,7 +19,7 @@ Route::middleware(['auth:sanctum'])->group(function() {
     Route::get("/listar-conjuntos-tema", [TemasController::class, "conjuntosTema"])->name('conjuntosTemaTema');
     Route::get("/listar-questoes-conjunto", [ConjuntosController::class, "questoesConjunto"])->name('questoesConjunto');
     Route::post("/concluir-conjunto", [ConjuntosController::class, "concluirConjunto"])->name('concluirConjunto');
-    Route::get("/me", [LoginRegisterController::class, "userInfo"])->name('userInfo');
+    Route::get("/me", [UserController::class, "userInfo"])->name('userInfo');
     Route::post("/update-avatar-user", [UserController::class, "updateAvatarUser"])->name('updateAvatarUser');
     Route::post("/update-name-user", [UserController::class, "updateNameUser"])->name('updateNameUser');
 });

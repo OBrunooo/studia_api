@@ -115,4 +115,16 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Error Notification Address
+    |--------------------------------------------------------------------------
+    |
+    | E-mail que recebe a notificação quando ocorre um erro na aplicação.
+    | Se não definido, usa o endereço "from" global.
+    |
+    */
+
+    'error_to' => env('MAIL_ERROR_TO', env('MAIL_FROM_ADDRESS')),
+
 ];

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\ConjuntoQuestoes;
 use App\Models\Questoes;
 use App\Models\UserConclusaoConjunto;
+use App\Services\LogService;
 
 class ConjuntosController extends Controller {
 
@@ -32,6 +33,9 @@ class ConjuntosController extends Controller {
                 "questoes" => $questoes
             ], 200);
         } catch (\Throwable $th) {
+            LogService::error(action: "questoes-conjunto", user: Auth::user(), error: $th, data: [
+                "conjunto_id" => $request->input("conjunto_id"),
+            ]);
             return response()->json([
                 "success" => false,
                 "message" => "Ocorreu um erro ao buscar as questões do conjunto",
@@ -65,11 +69,17 @@ class ConjuntosController extends Controller {
             }
             $userConclusaoConjunto->conclusao = true;
             $userConclusaoConjunto->save();
+            LogService::info(action: "concluir-conjunto", user: Auth::user(), message: "O conjunto de questões foi concluído com sucesso", data: [
+                "conjunto_id" => $request->input("conjunto_id"),
+            ]);
             return response()->json([
                 "success" => true,
                 "message" => "O conjunto de questões foi concluído com sucesso"
             ], 200);
         } catch (\Throwable $th) {
+            LogService::error(action: "concluir-conjunto", user: Auth::user(), error: $th, data: [
+                "conjunto_id" => $request->input("conjunto_id"),
+            ]);
             return response()->json([
                 "success" => false,
                 "message" => "Ocorreu um erro ao verificar a conclusão do conjunto",

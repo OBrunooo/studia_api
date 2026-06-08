@@ -8,20 +8,47 @@ use App\Models\Tema;
 use App\Models\UserTema;
 use App\Models\UserConclusaoConjunto;
 use App\Http\Controllers\QuestoesController;
+use App\Jobs\BuscarGerarQuestoesTema;
+use Illuminate\Support\Facades\Log;
+use App\Services\LogService;
 
 class TemasController extends Controller {
+ 
+
     public function buscarGerarQuestoesTema (Request $request) {
-        $request->validate([
-        "tema" => "required|string|min:3|max:255|regex:/^[\pL\pN\s\-\/.,()]+$/u"
-        ], [
-            "tema.required" => "O campo tema é obrigatório",
-            "tema.string" => "O campo tema deve ser uma string",
-            "tema.max" => "O campo tema deve ter no máximo 255 caracteres",
-            "tema.min" => "O campo tema deve ter no mínimo 3 caracteres",
-            "tema.regex" => "O campo tema deve conter apenas letras, números, espaços, hífens, barras, vírgulas e parênteses"
-        ]);
         try {
             $tema = $request->input("tema");
+            $request->validate([
+            "tema" => "required|string|min:3|max:255|regex:/^[\pL\pN\s\-\/.,()]+$/u"
+            ], [
+                "tema.required" => "O campo tema é obrigatório",
+                "tema.string" => "O campo tema deve ser uma string",
+                "tema.max" => "O campo tema deve ter no máximo 255 caracteres",
+                "tema.min" => "O campo tema deve ter no mínimo 3 caracteres",
+                "tema.regex" => "O campo tema deve conter apenas letras, números, espaços, hífens, barras, vírgulas e parênteses"
+            ]);
+            BuscarGerarQuestoesTema::dispatch($request->input("tema"), Auth::user());
+            LogService::info(action: "solicitar-buscar-gerar-questoes-tema", user: Auth::user(), message: "Solicitação de busca e geração de questões enfileirada para o tema $tema", data: [
+                "user_id" => Auth::user()->id,
+                "tema" => $tema,
+                "ip" => $request->ip()
+            ]);
+            return response()->json([
+                "success" => true,
+                "message" => "Buscando e gerando questões para o tema $tema"
+            ], 200);
+        } catch (\Throwable $th) {
+            LogService::error(action: "solicitar-buscar-gerar-questoes-tema", user: Auth::user(), error: $th);
+            return response()->json([
+                "success" => false,
+                "message" => "Ocorreu um erro ao buscar e gerar questões"
+            ], 500);
+        }
+
+    }
+
+    public static function verificarTema($tema, $user) {
+        try {
             ini_set('max_execution_time', 300); 
             set_time_limit(300);
 
@@ -54,27 +81,27 @@ class TemasController extends Controller {
             $response = curl_exec($ch);
             if($response === false){
                 curl_close($ch);
-                return response()->json([
+                return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar a conexão com o agente IA",
                     "errorMessage" => curl_error($ch)
-                ], 500);
+                ];
             };
             
             curl_close($ch);
             $response = json_decode($response, true);
 
             if($response === null){
-                return response()->json([
+                return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar a conexão com o agente IA"
-                ], 500);
+                ];
             };
             if (! isset($response['usage']['input_tokens'], $response['usage']['output_tokens'], $response['output'][1]['content'][0]['text'])) {
-                return response()->json([
+                return [
                     "success" => false,
                     "message" => "Resposta inválida do agente IA",
-                ], 500);
+                ];
             }
             $tokens = [
                 "gpt-5-nano" => [
@@ -83,28 +110,28 @@ class TemasController extends Controller {
                 ]
             ]; 
             $tema = $response["output"][1]["content"][0]["text"];
-            $tema = strtoupper($tema);
+            $tema = mb_strtoupper($tema, 'UTF-8');
             if($tema == "INVALIDO") {
                 QuestoesController::armazenaTokens($tokens);           
-                return response()->json([
+                return [
                     "success" => false,
                     "message" => "O tema $tema digitado é inválido",
                     "response" => $response
-                ], 500);
+                ];
             }
 
             $buscaTema = Tema::where("nome", "=", $tema)->first();
             if($buscaTema !== null) {
-                $userId = Auth::user()->id;
+                $userId = $user->id;
 
                 $verificacao = UserTema::where("user_id", $userId)
                 ->where("tema_id", $buscaTema->id)->first();
                 if($verificacao !== null) {
                     QuestoesController::armazenaTokens($tokens);
-                    return response()->json([
+                    return [
                         "success" => true,
                         "message" => "O usuário já está cadastrado no tema $tema"
-                    ], 200);
+                    ];
                 }
                 UserTema::create([
                     "user_id" => $userId,
@@ -118,21 +145,23 @@ class TemasController extends Controller {
                     ]);
                 }
                 QuestoesController::armazenaTokens($tokens);
-                return response()->json([
+                return [
                     "success" => true,
                     "message" => "O usuário foi cadastrado ao tema $tema com sucesso"
-                ], 200);
+                ];
             }
-            return (new QuestoesController())->gerarQuestoes($tema, $tokens);
+            return (new QuestoesController())->gerarQuestoes($tema, $tokens, $user);
         } catch (\Throwable $th) {
-            return response()->json([
+            Log::info("Ocorreu um erro ao verificar o tema: " . $th->getMessage());
+            return [
                 "success" => false,
                 "message" => "Ocorreu um erro ao buscar e gerar questões",
                 "errorMessage" => $th->getMessage(),
                 "errorLine" => $th->getLine()
-            ], 500);
+            ];
         }
     }
+
 
     public function conjuntosTema(Request $request) {
         $request->validate([
@@ -156,12 +185,16 @@ class TemasController extends Controller {
             }
             return response()->json(["conjuntos" => $conjuntosConclusao]);
         } catch (\Exception $e) {
+            LogService::error(action: "listar-conjuntos-tema", user: Auth::user(), error: $e, data: [
+                "tema_id" => $request->tema_id,
+            ]);
             return response()->json(["error" => "Erro ao listar conjuntos"], 500);
         }
     }
 
     public function temasUser(Request $request) {
         try {
+            $teste = $teste1;
             $user = Auth::user();
             $temasUser = $user->temasUser();
             if(empty($temasUser)) {
@@ -178,6 +211,7 @@ class TemasController extends Controller {
             }
             return response()->json(["temas" => $temas]);
         } catch (\Exception $e) {
+            LogService::error("listar-temas-usuario", Auth::user(), $e);
             return response()->json(["error" => "Erro ao listar temas"], 500);
         }
     }

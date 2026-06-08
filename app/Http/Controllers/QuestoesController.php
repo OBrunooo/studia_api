@@ -12,11 +12,12 @@ use App\Models\Tema;
 use App\Models\Questoes;
 use App\Models\ConjuntoQuestoes;
 use App\Models\UserConclusaoConjunto;
+use Illuminate\Support\Facades\Log;
 
 
 class QuestoesController extends Controller {
 
-    public function gerarQuestoes($tema, $tokens) {  
+    public function gerarQuestoes($tema, $tokens, $user) {  
         try {
             ini_set('max_execution_time', 300); 
             set_time_limit(300);
@@ -68,10 +69,10 @@ Siga rigorosamente estas regras:
             if($response === false){
                 curl_close($ch);
                 self::armazenaTokens($tokens);
-                return response()->json([
+                return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar a conexão com o agente IA"
-                ], 500);
+                ];
             };
             
             curl_close($ch);
@@ -79,38 +80,40 @@ Siga rigorosamente estas regras:
 
             if($response === null){
                 self::armazenaTokens($tokens);
-                return response()->json([
+                return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar a conexão com o agente IA"
-                ], 500);
+                ];
             };
 
             if (! isset($response['usage']['input_tokens'], $response['usage']['output_tokens'], $response['output'][1]['content'][0]['text'])) {
                 self::armazenaTokens($tokens);
-                return response()->json([
+                return [
                     "success" => false,
                     "message" => "Resposta inválida do agente IA",
-                ], 500);
+                ];
             }
 
             $tokens["gpt-5-nano"]["input"] =  $tokens["gpt-5-nano"]["input"] + $response["usage"]["input_tokens"];
             $tokens["gpt-5-nano"]["output"] =  $tokens["gpt-5-nano"]["output"] + $response["usage"]["output_tokens"];
 
             $questoes = $response["output"][1]["content"][0]["text"];
-            return $this->analisarESelecionarQuestoes($questoes, $tema, $tokens);   
+            Log::info("Questoes: " . $questoes);
+            return $this->analisarESelecionarQuestoes($questoes, $tema, $tokens, $user);   
         } catch (\Throwable $th) {
             self::armazenaTokens($tokens);
-            return response()->json([
+            Log::info("Ocorreu um erro ao gerar questões: " . $th->getMessage());
+            return [
                 "success" => false,
                 "message" => "Ocorreu um erro ao armazenar questoes/conjuntos e tema",
                 "errorMessage" => $th->getMessage(),
                 "errorLine" => $th->getLine()
-            ], 500); 
+            ]; 
         }         
 
     }
 
-    public function analisarESelecionarQuestoes($questoes, $tema, $tokens) {
+    public function analisarESelecionarQuestoes($questoes, $tema, $tokens, $user) {
         try {
             ini_set('max_execution_time', 600); 
             set_time_limit(600);
@@ -126,7 +129,7 @@ Siga rigorosamente estas regras:
                 "input" => [
                     [
                         "role" => "system",
-                        "content" => "Você é um especialista em curadoria educacional e geração de questões para iniciantes. Sua tarefa: (1) analisar uma lista de perguntas fornecida; (2) selecionar exatamente as 50 melhores; (3) organizar essas 50 do mais fácil ao mais difícil; (4) gerar 4 alternativas para cada pergunta, onde a primeira alternativa é sempre a correta. Regras obrigatórias: 1) Analise cada pergunta individualmente. 2) Não alterar, reescrever, resumir ou modificar o texto original das perguntas; apenas selecionar e reorganizar. 3) Não repetir perguntas. 4) Produzir exatamente 50 blocos. 5) Cada bloco deve ser formatado sem nenhuma quebra de linha visível ou invisível, e sem o texto 'PerguntaOriginal'. 6) Formato estrito de cada bloco: iniciar com '---' seguido imediatamente pela pergunta original; em seguida concatenar quatro alternativas, cada uma delimitada por '{{{}}}' e sem qualquer quebra de linha, por exemplo: ---PERGUNTA_AQUI{{{}}}Alternativa1_correta{{{}}}{{{}}}Alternativa2_plausivel{{{}}}{{{}}}Alternativa3_plausivel{{{}}}{{{}}}Alternativa4_plausivel{{{}}}---. 7) A primeira alternativa é sempre a correta. 8) As outras três devem ser incorretas, porém plausíveis e curtas, com no máximo 12 palavras. 9) Nunca usar numeração, letras (A,B,C...), bullets ou símbolos adicionais. 10) Nunca usar '<', '>', '[', ']' ou qualquer caractere que possa ser interpretado como markup. 11) Nunca incluir '\n', '\n', '\r', '\r', '\t', '\t', ou qualquer caractere de escape no output. Nenhuma forma de quebra de linha é permitida. 12) O resultado final deve ser um único texto contínuo contendo os 50 blocos consecutivos exatamente no formato descrito, sem espaços extras, sem quebras e sem texto adicional. 13) Retorne apenas os blocos finais formatados."
+                        "content" => "Você é um especialista em curadoria educacional e geração de questões para iniciantes. Sua tarefa: (1) analisar uma lista de perguntas fornecida; (2) selecionar exatamente as 70 melhores; (3) organizar essas 70 do mais fácil ao mais difícil; (4) gerar 4 alternativas para cada pergunta, onde a primeira alternativa é sempre a correta. Regras obrigatórias: 1) Analise cada pergunta individualmente. 2) Não alterar, reescrever, resumir ou modificar o texto original das perguntas; apenas selecionar e reorganizar. 3) Não repetir perguntas. 4) Produzir exatamente 70 blocos. 5) Cada bloco deve ser formatado sem nenhuma quebra de linha visível ou invisível, e sem o texto 'PerguntaOriginal'. 6) Formato estrito de cada bloco: iniciar com '---' seguido imediatamente pela pergunta original; em seguida concatenar quatro alternativas, cada uma delimitada por '{{{}}}' e sem qualquer quebra de linha, por exemplo: ---PERGUNTA_AQUI{{{}}}Alternativa1_correta{{{}}}{{{}}}Alternativa2_plausivel{{{}}}{{{}}}Alternativa3_plausivel{{{}}}{{{}}}Alternativa4_plausivel{{{}}}---. 7) A primeira alternativa é sempre a correta. 8) As outras três devem ser incorretas, porém plausíveis e curtas, com no máximo 12 palavras. 9) Nunca usar numeração, letras (A,B,C...), bullets ou símbolos adicionais. 10) Nunca usar '<', '>', '[', ']' ou qualquer caractere que possa ser interpretado como markup. 11) Nunca incluir '\n', '\n', '\r', '\r', '\t', '\t', ou qualquer caractere de escape no output. Nenhuma forma de quebra de linha é permitida. 12) O resultado final deve ser um único texto contínuo contendo os 70 blocos consecutivos exatamente no formato descrito, sem espaços extras, sem quebras e sem texto adicional. 13) Retorne apenas os blocos finais formatados."
                     ],
                     [
                         "role" => "user",
@@ -148,28 +151,28 @@ Siga rigorosamente estas regras:
             if($response === false){
                 curl_close($ch);
                 self::armazenaTokens($tokens);
-                return response()->json([
+                return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar analisar as questões"
-                ], 500);
+                ];
             };
             $response = json_decode($response, true);
             curl_close($ch);
             
             if($response === null){
                 self::armazenaTokens($tokens);
-                return response()->json([
+                return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar analisar as questões"
-                ], 500);
+                ];
             };
 
             if (! isset($response['usage']['input_tokens'], $response['usage']['output_tokens'], $response['output'][1]['content'][0]['text'])) {
                 self::armazenaTokens($tokens);
-                return response()->json([
+                return [
                     "success" => false,
                     "message" => "Resposta inválida do agente IA",
-                ], 500);
+                ];
             }
             
             $tokens["gpt-5-nano"]["input"] =  $tokens["gpt-5-nano"]["input"] + $response["usage"]["input_tokens"];
@@ -198,24 +201,25 @@ Siga rigorosamente estas regras:
             }
             if(count($conjuntos) < 35){
                 self::armazenaTokens($tokens);
-                return response()->json([
+                return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar analisar as questões",
-                ], 500);
+                ];
             }
-            return $this->verificarConjunto($conjuntos, $tema, $tokens);            
+            Log::info("Conjuntos: " . json_encode($conjuntos, JSON_UNESCAPED_UNICODE));
+            return $this->verificarConjunto($conjuntos, $tema, $tokens, $user);            
         } catch (\Throwable $th) {
             self::armazenaTokens($tokens);
-            return response()->json([
+            return [
                 "success" => false,
                 "message" => "Ocorreu um erro ao realizar analisar as questões",
                 "errorMessage" => $th->getMessage(),
                 "errorLine" => $th->getLine()
-            ], 500); 
+            ]; 
         }
     }
 
-    public function verificarConjunto($conjuntos, $tema, $tokens) {
+    public function verificarConjunto($conjuntos, $tema, $tokens, $user) {
         try {
             $message = "";
             for($i = 0; $i < count($conjuntos); $i++) {
@@ -228,10 +232,10 @@ Siga rigorosamente estas regras:
             };
             if($message === ""){
                 self::armazenaTokens($tokens);
-                return response()->json([
+                return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar verificar os conjuntos",
-                ], 500);
+                ];
             }
             $ch = curl_init();
             set_time_limit(600);
@@ -265,10 +269,10 @@ Siga rigorosamente estas regras:
             if($response === false){
                 curl_close($ch);
                 self::armazenaTokens($tokens);
-                return response()->json([
+                return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar a conexão com o agente IA"
-                ], 500);
+                ];
             };
             
             curl_close($ch);
@@ -277,17 +281,17 @@ Siga rigorosamente estas regras:
 
             if($response === null){
                 self::armazenaTokens($tokens);
-                return response()->json([
+                return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar a conexão com o agente IA"
-                ], 500);
+                ];
             };
             if (! isset($response['usage']['input_tokens'], $response['usage']['output_tokens'], $response['output'][1]['content'][0]['text'])) {
                 self::armazenaTokens($tokens);
-                return response()->json([
+                return [
                     "success" => false,
                     "message" => "Resposta inválida do agente IA",
-                ], 500);
+                ];
             }
             $tokens["gpt-5-nano"]["input"] =  $tokens["gpt-5-nano"]["input"] + $response["usage"]["input_tokens"];
             $tokens["gpt-5-nano"]["output"] =  $tokens["gpt-5-nano"]["output"] + $response["usage"]["output_tokens"];
@@ -313,28 +317,29 @@ Siga rigorosamente estas regras:
                 }
             }
 
-            return $this->armazenaConjuntosTema(array_values($conjuntos), $tema, $tokens);   
+            return $this->armazenaConjuntosTema(array_values($conjuntos), $tema, $tokens, $user);   
         } catch (\Throwable $th) {
             self::armazenaTokens($tokens);
-            return response()->json([
+            Log::info("Ocorreu um erro ao verificar conjuntos: " . $th->getMessage());
+            return [
                 "success" => false,
                 "message" => "Ocorreu um erro ao verificar conjuntos"
-            ], 500);        
+            ];        
         }
     }
 
-    public function armazenaConjuntosTema($conjuntos, $tema, $tokens) {
+    public function armazenaConjuntosTema($conjuntos, $tema, $tokens, $user) {
         try {
             if(count($conjuntos) < 35){
                 self::armazenaTokens($tokens);
-                return response()->json([
+                return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao armazenar conjuntos, pois o número de conjuntos é menor que 35",
                     'conjuntos' => $conjuntos
-                ], 500);
+                ];
             };
 
-            DB::transaction(function () use ($conjuntos, $tema) {
+            DB::transaction(function () use ($conjuntos, $tema, $user) {
                 $idConjuntos = [];
                 for ($i = 0; $i < 35; $i) {
                     
@@ -416,7 +421,7 @@ Siga rigorosamente estas regras:
                 for ($i = 0; $i < count($idConjuntos); $i ++) {
                     UserConclusaoConjunto::create([
                         "conjunto_id" => $idConjuntos[$i],
-                        "user_id" => Auth::user()->id,
+                        "user_id" => $user->id,
                     ]);
                 }
 
@@ -432,53 +437,61 @@ Siga rigorosamente estas regras:
                 ]);
 
                 UserTema::create([
-                    "user_id" => Auth::user()->id,
+                    "user_id" => $user->id,
                     "tema_id" => $temaModel->id
                 ]);
             });
 
             self::armazenaTokens($tokens);
-
-            return response()->json([
+            Log::info("O usuário foi cadastrado ao tema $tema com sucesso");
+            return [
                 "success" => true,
                 "message" => "O usuário foi cadastrado ao tema $tema com sucesso"
-            ], 200);
+            ];
         } catch (\Throwable $th) {
             self::armazenaTokens($tokens);
-
-            return response()->json([
+            Log::info("Ocorreu um erro ao armazenar questoes/conjuntos e tema: " . $th->getMessage());
+            return [
                 "success" => false,
                 "message" => "Ocorreu um erro armazenar questoes/conjuntos e tema",
                 "errorMessage" => $th->getMessage(),
                 "errorLine" => $th->getLine()
-            ], 500);  
+            ];  
         }
     }
 
     public static function armazenaTokens($tokens) {
-        $modelosTokens = array_keys($tokens);
-        foreach($modelosTokens as $tm) {
-            $modelo = Modelo::where("nome", $tm)->first();
-            if($modelo === null) {
-                Token::create([
-                    "modelo_id" => 2,
-                    "input" => $tokens[$tm]['input'],
-                    "output" => $tokens[$tm]['output'],
-                ]);
-            } else {
-                Token::create([
-                    "modelo_id" => $modelo->id,
-                    "input" => $tokens[$tm]['input'],
-                    "output" => $tokens[$tm]['output'],
-                ]);
-            }
-        }          
+        try {
+            Log::info("Tokens: " . json_encode($tokens, JSON_UNESCAPED_UNICODE));
+            $modelosTokens = array_keys($tokens);
+            foreach($modelosTokens as $tm) {
+                $modelo = Modelo::where("nome", $tm)->first();
+                if($modelo === null) {
+                    Token::create([
+                        "modelo_id" => 2,
+                        "input" => $tokens[$tm]['input'],
+                        "output" => $tokens[$tm]['output'],
+                    ]);
+                } else {
+                    Token::create([
+                        "modelo_id" => $modelo->id,
+                        "input" => $tokens[$tm]['input'],
+                        "output" => $tokens[$tm]['output'],
+                    ]);
+                }
+            }          
+        } catch (\Throwable $th) {
+            Log::info("Ocorreu um erro ao armazenar tokens: " . $th->getMessage());
+        }
     }
 
     private static function buscaConjuntoQuestoesPorId($id) {
         $conjunto = ConjuntoQuestoes::where("id", "=", $id)->first();
         if($conjunto === null) {
-            throw new \Exception("Ocorreu um erro ao buscar conjunto de questões");
+            return response()->json([
+                "success" => false,
+                "message" => "O conjunto de questões não foi encontrado"
+            ], 404);
         }
         return $conjunto;
     }
