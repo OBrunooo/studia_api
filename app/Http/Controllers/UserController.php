@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\NotificacaoUsuario;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
@@ -67,6 +69,21 @@ class UserController extends Controller
             return response()->json([
                 "success" => false,
                 "message" => "Erro ao atualizar nome do usuário",
+                "error" => $th->getMessage()
+            ], 500);
+        }
+    }
+
+    public function listarNotificacoesUser() {
+        try {
+            $notificacoes = NotificacaoUsuario::where("user_id", Auth::user()->id)->get();
+            return response()->json([
+                "notificacoes" => $notificacoes
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                "success" => false,
+                "message" => "Erro ao listar notificações do usuário",  
                 "error" => $th->getMessage()
             ], 500);
         }

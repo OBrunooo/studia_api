@@ -22,6 +22,7 @@ Route::middleware(['auth:sanctum'])->group(function() {
     Route::get("/me", [UserController::class, "userInfo"])->name('userInfo');
     Route::post("/update-avatar-user", [UserController::class, "updateAvatarUser"])->name('updateAvatarUser');
     Route::post("/update-name-user", [UserController::class, "updateNameUser"])->name('updateNameUser');
+    Route::get("/listar-notificacoes-user", [UserController::class, "listarNotificacoesUser"])->name('listarNotificacoesUser');
 });
     
 

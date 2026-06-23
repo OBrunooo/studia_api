@@ -194,7 +194,6 @@ class TemasController extends Controller {
 
     public function temasUser(Request $request) {
         try {
-            $teste = $teste1;
             $user = Auth::user();
             $temasUser = $user->temasUser();
             if(empty($temasUser)) {

@@ -8,6 +8,7 @@ use App\Http\Controllers\TemasController;
 use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use App\Services\LogService;
+use App\Models\NotificacaoUsuario;
 
 class BuscarGerarQuestoesTema implements ShouldQueue
 {
@@ -34,19 +35,29 @@ class BuscarGerarQuestoesTema implements ShouldQueue
         try {
             $resultado = TemasController::verificarTema($this->tema, $this->user);
             if($resultado["success"]) {
-            LogService::info(action: "processar-buscar-gerar-questoes-tema", user: $this->user, message: "Questões geradas com sucesso para o tema $this->tema", data: [
-                "user_id" => $this->user->id,
-                    "tema" => $this->tema,
-                    "resultado" => $resultado["message"]
-                ]);
+                if(str_starts_with($resultado["message"], "O usuário já está cadastrado no tema")) {
+                    LogService::info(action: "processar-buscar-gerar-questoes-tema", user: $this->user, message: "Usuário já cadastrado para o tema $this->tema", data: [
+                        "user_id" => $this->user->id,
+                        "tema" => $this->tema,
+                    ]);                    
+                    NotificacaoUsuario::adicionarNotificacao("Você já está cadastrado a um tema referente a: $this->tema", "info", $this->user);
+                } else {
+                    LogService::info(action: "processar-buscar-gerar-questoes-tema", user: $this->user, message: "Tema gerado com sucesso: $this->tema", data: [
+                        "user_id" => $this->user->id,
+                        "tema" => $this->tema
+                    ]);                    
+                    NotificacaoUsuario::adicionarNotificacao("Um novo tema foi gerado com o tema indicado: $this->tema", "info", $this->user);
+                }
             } else {
                 LogService::error(action: "processar-buscar-gerar-questoes-tema", user: $this->user, error: null, data: [
                     "user_id" => $this->user->id,
                     "tema" => $this->tema,
                     "resultado" => $resultado["message"]
                 ]);
+                NotificacaoUsuario::adicionarNotificacao("Erro ao gerar o tema indicado: $this->tema", "error", $this->user);
             }
         } catch (\Throwable $th) {
+            NotificacaoUsuario::adicionarNotificacao("Erro ao gerar o tema indicado: $this->tema", "error", $this->user);
             LogService::error(action: "processar-buscar-gerar-questoes-tema", user: $this->user, error: $th);
         }
     }
