@@ -39,8 +39,14 @@ class PasswordResetController extends Controller {
         );
 
 
-        // envia email (método fica no Model)
-        $user->sendPasswordResetToken($caracteres);
+        try {
+            $user->sendPasswordResetToken($caracteres);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'mensagem' => 'Não foi possível enviar o e-mail. Tente novamente mais tarde.',
+            ], 500);
+        }
 
         return response()->json([
             "status" => "sucesso",

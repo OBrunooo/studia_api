@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Notifications\Notification;
+use App\Notifications\PasswordResetNotification;
 use App\Models\Tema;
 use App\Models\UserTema;
 use Illuminate\Support\Facades\DB;
@@ -54,24 +54,7 @@ class User extends Authenticatable
 
     public function sendPasswordResetToken($token)
     {
-        $this->notify(new class($token) extends Notification {
-
-            public function __construct(private string $token) {}
-
-            public function via($notifiable)
-            {
-                return ['mail'];
-            }
-
-            public function toMail($notifiable)
-            {
-                return (new \Illuminate\Notifications\Messages\MailMessage)
-                    ->subject('🔐 Recuperação de senha - StudIA')
-                    ->view('emails.reset-password', [
-                        'token' => $this->token
-                    ]);
-            }
-        });
+        $this->notify(new PasswordResetNotification($token));
     }
 
     public function temasUser() {

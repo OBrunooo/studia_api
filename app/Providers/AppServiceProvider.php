@@ -11,7 +11,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        if (! $this->app->bound('view')) {
+            $this->app->register(\Illuminate\View\ViewServiceProvider::class);
+        }
     }
 
     /**
