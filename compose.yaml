@@ -41,13 +41,7 @@ services:
             timeout: 5s
 
     queue:
-        build:
-            context: './vendor/laravel/sail/runtimes/8.5'
-            dockerfile: Dockerfile
-            args:
-                WWWGROUP: '${WWWGROUP}'
         image: sail-8.5/app
-        user: "${WWWUSER}:${WWWGROUP}"
         volumes:
             - '.:/var/www/html'
         networks:
