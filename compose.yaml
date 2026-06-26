@@ -23,6 +23,7 @@ services:
             - sail
         depends_on:
             - redis
+
     redis:
         image: 'redis:alpine'
         ports:
@@ -38,6 +39,7 @@ services:
                 - ping
             retries: 3
             timeout: 5s
+
     queue:
         build:
             context: './vendor/laravel/sail/runtimes/8.5'
@@ -45,6 +47,7 @@ services:
             args:
                 WWWGROUP: '${WWWGROUP}'
         image: sail-8.5/app
+        user: "${WWWUSER}:${WWWGROUP}"
         volumes:
             - '.:/var/www/html'
         networks:
@@ -53,9 +56,11 @@ services:
             - redis
         command: php artisan queue:work redis --verbose --sleep=1 --tries=3 --timeout=90
         restart: unless-stopped
+
 networks:
     sail:
         driver: bridge
+
 volumes:
     sail-redis:
         driver: local
