@@ -38,6 +38,21 @@ services:
                 - ping
             retries: 3
             timeout: 5s
+    queue:
+        build:
+            context: './vendor/laravel/sail/runtimes/8.5'
+            dockerfile: Dockerfile
+            args:
+                WWWGROUP: '${WWWGROUP}'
+        image: sail-8.5/app
+        volumes:
+            - '.:/var/www/html'
+        networks:
+            - sail
+        depends_on:
+            - redis
+        command: php artisan queue:work redis --verbose --sleep=1 --tries=3 --timeout=90
+        restart: unless-stopped
 networks:
     sail:
         driver: bridge
