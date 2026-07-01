@@ -52,6 +52,7 @@ services:
         environment:
             WWWUSER: '${WWWUSER}'
             LARAVEL_SAIL: 1
+            SUPERVISOR_PHP_USER: root
         volumes:
             - '.:/var/www/html'
         networks:

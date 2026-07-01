@@ -75,7 +75,7 @@ class TemasController extends Controller {
             curl_setopt($ch, CURLOPT_HTTPHEADER, [
                 "Accept: application/json",
                 "Content-Type: application/json",
-                "Authorization: Bearer " . env('OPENAI_API_KEY')
+                "Authorization: Bearer " . config('services.openai.key')
             ]);
 
             $response = curl_exec($ch);

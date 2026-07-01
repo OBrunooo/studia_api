@@ -60,7 +60,7 @@ Siga rigorosamente estas regras:
             curl_setopt($ch, CURLOPT_HTTPHEADER, [
                 "Accept: application/json",
                 "Content-Type: application/json",
-                "Authorization: Bearer " . env('OPENAI_API_KEY')
+                "Authorization: Bearer " . config('services.openai.key')
             ]);
 
 
@@ -141,7 +141,7 @@ Siga rigorosamente estas regras:
             curl_setopt($ch, CURLOPT_HTTPHEADER, [
                 "Accept: application/json",
                 "Content-Type: application/json",
-                "Authorization: Bearer " . env('OPENAI_API_KEY')
+                "Authorization: Bearer " . config('services.openai.key')
             ]);
 
             
@@ -260,7 +260,7 @@ Siga rigorosamente estas regras:
             curl_setopt($ch, CURLOPT_HTTPHEADER, [
                 "Accept: application/json",
                 "Content-Type: application/json",
-                "Authorization: Bearer " . env('OPENAI_API_KEY')
+                "Authorization: Bearer " . config('services.openai.key')
             ]);
 
 
@@ -468,7 +468,7 @@ Siga rigorosamente estas regras:
                 $modelo = Modelo::where("nome", $tm)->first();
                 if($modelo === null) {
                     Token::create([
-                        "modelo_id" => 2,
+                        "modelo_id" => 1,
                         "input" => $tokens[$tm]['input'],
                         "output" => $tokens[$tm]['output'],
                     ]);
