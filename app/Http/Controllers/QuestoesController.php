@@ -153,7 +153,7 @@ Siga rigorosamente estas regras:
                 self::armazenaTokens($tokens);
                 return [
                     "success" => false,
-                    "message" => "Ocorreu um erro ao realizar analisar as questões"
+                    "message" => "Ocorreu um erro ao realizar analisar as questões, pois a resposta do agente IA é inválida"
                 ];
             };
             $response = json_decode($response, true);
@@ -163,7 +163,7 @@ Siga rigorosamente estas regras:
                 self::armazenaTokens($tokens);
                 return [
                     "success" => false,
-                    "message" => "Ocorreu um erro ao realizar analisar as questões"
+                    "message" => "Ocorreu um erro ao realizar analisar as questões, pois a resposta do agente IA é inválida"
                 ];
             };
 
@@ -203,7 +203,7 @@ Siga rigorosamente estas regras:
                 self::armazenaTokens($tokens);
                 return [
                     "success" => false,
-                    "message" => "Ocorreu um erro ao realizar analisar as questões",
+                    "message" => "Ocorreu um erro ao realizar analisar as questões, pois o número de conjuntos é menor que 35",
                 ];
             }
             Log::info("Conjuntos: " . json_encode($conjuntos, JSON_UNESCAPED_UNICODE));
