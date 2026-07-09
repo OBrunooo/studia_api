@@ -20,18 +20,20 @@ services:
             - '.:/var/www/html'
         networks:
             - sail
-            - traefik # <-- CORREÇÃO 1: Adicionado à rede do Traefik
+            - traefik
         depends_on:
             redis:
                 condition: service_healthy
         restart: unless-stopped
         labels:
             - 'traefik.enable=true'
-            - "traefik.docker.network=traefik" # Esta label agora vai funcionar corretamente!
+            - "traefik.docker.network=traefik"
             - "traefik.http.routers.laravel.rule=Host(`studia.vps-bruno-gomes.com`)"
             - "traefik.http.routers.laravel.entrypoints=websecure"
             - "traefik.http.routers.laravel.tls.certresolver=letsencrypt"
             - "traefik.http.services.laravel.loadbalancer.server.port=80"
+            - "traefik.http.services.laravel.loadbalancer.server.scheme=http"
+            - "traefik.http.routers.laravel.service=laravel"
 
     redis:
         image: 'redis:alpine'
@@ -64,7 +66,7 @@ services:
         volumes:
             - '.:/var/www/html'
         networks:
-            - sail # O queue não precisa da rede traefik, apenas da sail para falar com o Redis
+            - sail
         depends_on:
             redis:
                 condition: service_healthy
@@ -82,7 +84,7 @@ services:
 networks:
     sail:
         driver: bridge
-    traefik: # <-- CORREÇÃO 2: Declarando a rede externa do Traefik neste projeto
+    traefik:
         external: true
 
 volumes:
