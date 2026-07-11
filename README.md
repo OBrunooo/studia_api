@@ -1,59 +1,127 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Studia API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+API Laravel do projeto Studia, com autenticação via Sanctum, filas Redis e deploy em produção atrás do Traefik.
 
-## About Laravel
+## Requisitos
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Docker e Docker Compose
+- [Laravel Sail](https://laravel.com/docs/sail) (incluído como dependência de desenvolvimento)
+- PHP 8.2+ e Composer (para instalação inicial fora do container)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Serviços Docker
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| Serviço | Descrição |
+|---------|-----------|
+| `laravel.test` | Aplicação Laravel (PHP 8.5) |
+| `redis` | Cache e filas |
+| `queue` | Worker `php artisan queue:work redis` |
 
-## Learning Laravel
+## Desenvolvimento local
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### 1. Clonar e instalar
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+git clone <url-do-repositorio>
+cd API_projeto_estudos
+composer run setup
+```
 
-## Laravel Sponsors
+O comando `composer run setup` executa:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- `composer install`
+- Cria `.env` a partir de `.env.example` (se não existir)
+- Cria `compose.override.yaml` a partir de `compose.override.yaml.example` (se não existir)
+- Gera a `APP_KEY`
+- Roda migrations, instala dependências npm e build do frontend
 
-### Premium Partners
+### 2. Configurar o `.env`
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Ajuste as variáveis de ambiente para desenvolvimento. Exemplo:
 
-## Contributing
+```env
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://localhost:8000
+APP_PORT=8000
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 3. Criar a rede Traefik (apenas na primeira vez)
 
-## Code of Conduct
+Em desenvolvimento local não há um container Traefik real, mas o `compose.yaml` referencia a rede externa `traefik`. Crie-a uma vez:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+docker network create traefik
+```
 
-## Security Vulnerabilities
+### 4. Subir os containers
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+./vendor/bin/sail up -d
+```
 
-## License
+A API ficará disponível em **http://localhost:8000** (porta configurável via `APP_PORT` no `.env`).
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Comandos úteis
+
+```bash
+./vendor/bin/sail artisan migrate          # Rodar migrations
+./vendor/bin/sail artisan queue:work       # Worker manual (já há um serviço queue)
+./vendor/bin/sail logs -f laravel.test     # Logs da aplicação
+./vendor/bin/sail down                     # Parar containers
+```
+
+## Docker Compose: dev vs produção
+
+O projeto usa dois arquivos de compose com papéis distintos:
+
+| Arquivo | Versionado | Uso |
+|---------|------------|-----|
+| `compose.yaml` | Sim | Base compartilhada. Em produção, é o único arquivo usado. |
+| `compose.override.yaml.example` | Sim | Template para desenvolvimento local. |
+| `compose.override.yaml` | Não (`.gitignore`) | Sobrescreve o compose base **apenas em dev**, expondo a porta local. |
+
+### Desenvolvimento
+
+O Docker Compose mescla automaticamente `compose.yaml` + `compose.override.yaml`. O override publica a porta da aplicação somente em `127.0.0.1`:
+
+```yaml
+ports:
+  - '127.0.0.1:${APP_PORT:-8000}:80'
+```
+
+Isso permite acessar a API diretamente no localhost, sem depender do Traefik.
+
+Se o `compose.override.yaml` não existir após o clone, crie-o manualmente:
+
+```bash
+cp compose.override.yaml.example compose.override.yaml
+```
+
+### Produção
+
+No servidor (VPS), **não** deve existir `compose.override.yaml`. Apenas o `compose.yaml` é usado:
+
+- Sem `ports` publicados no host
+- Acesso externo exclusivamente via **Traefik** (HTTPS)
+- Domínio: `studia.vps-bruno-gomes.com`
+- Rede Docker `traefik` deve já existir no servidor
+
+Configure o `.env` de produção com as credenciais e URLs corretas antes de subir:
+
+```bash
+./vendor/bin/sail up -d
+```
+
+## Estrutura de filas
+
+Jobs assíncronos (ex.: geração de questões por tema) são processados pelo serviço `queue`, que executa:
+
+```bash
+php artisan queue:work redis --sleep=3 --tries=1 --timeout=1800
+```
+
+A conexão de fila padrão é `redis` (`QUEUE_CONNECTION=redis` no `.env`).
+
+## Licença
+
+MIT
