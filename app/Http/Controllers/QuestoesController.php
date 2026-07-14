@@ -35,7 +35,7 @@ class QuestoesController extends Controller {
 
 Siga rigorosamente estas regras:
 
-1. Gere exatamente 100 perguntas.
+1. Gere exatamente 150 perguntas.
 2. As perguntas devem ser **curtas e objetivas**, preferencialmente com no máximo 25 palavras.
 3. Cubra todo o tema de forma **abrangente e introdutória**, apropriada para iniciantes.
 4. Evite perguntas muito técnicas ou complexas; elas devem facilitar o aprendizado inicial.
@@ -204,6 +204,7 @@ Siga rigorosamente estas regras:
                 return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar analisar as questões, pois o número de conjuntos é menor que 35",
+                    "conjuntos" => $conjuntos
                 ];
             }
             Log::info("Conjuntos: " . json_encode($conjuntos, JSON_UNESCAPED_UNICODE));
@@ -214,7 +215,8 @@ Siga rigorosamente estas regras:
                 "success" => false,
                 "message" => "Ocorreu um erro ao realizar analisar as questões",
                 "errorMessage" => $th->getMessage(),
-                "errorLine" => $th->getLine()
+                "errorLine" => $th->getLine(),
+                "conjuntos" => $conjuntos
             ]; 
         }
     }
@@ -323,7 +325,7 @@ Siga rigorosamente estas regras:
             Log::info("Ocorreu um erro ao verificar conjuntos: " . $th->getMessage());
             return [
                 "success" => false,
-                "message" => "Ocorreu um erro ao verificar conjuntos"
+                "message" => "Ocorreu um erro ao verificar conjuntos",
             ];        
         }
     }
@@ -335,7 +337,7 @@ Siga rigorosamente estas regras:
                 return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao armazenar conjuntos, pois o número de conjuntos é menor que 35",
-                    'conjuntos' => $conjuntos
+                    "conjuntos" => $conjuntos
                 ];
             };
 

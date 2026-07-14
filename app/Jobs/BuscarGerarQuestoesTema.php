@@ -52,7 +52,8 @@ class BuscarGerarQuestoesTema implements ShouldQueue
                 LogService::error(action: "processar-buscar-gerar-questoes-tema", user: $this->user, error: null, data: [
                     "user_id" => $this->user->id,
                     "tema" => $this->tema,
-                    "resultado" => $resultado["message"]
+                    "resultado" => $resultado["message"],
+                    "conjuntos" => $resultado["conjuntos"] ?? null
                 ]);
                 NotificacaoUsuario::adicionarNotificacao("Erro ao gerar o tema indicado: $this->tema", "error", $this->user);
             }
