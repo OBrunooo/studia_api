@@ -71,17 +71,4 @@ class LogService
             // Ignora falha ao enviar o e-mail de erro
         }
     }
-    public static function warning(string $action, $user = null, $message)
-    {
-        try {
-            Log::create([
-                "action" => $action,
-                "message" => $message,
-                "type" => "warning",
-                "user_id" => $user ? $user->id : null
-            ]);
-        } catch (\Throwable $th) {
-            // Ignora o erro de log
-        }
-    }
 }

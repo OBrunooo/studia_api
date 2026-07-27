@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class Log extends Model
 {
     protected $table = "logs";
-    CONST TABLE = "logs";
     protected $fillable = [
         "action",
         "message",
@@ -17,4 +16,22 @@ class Log extends Model
         "user_id",
         "data"
     ];
+
+    public static function info(string $action, string $message, array $data = []): void
+    {
+        self::create([
+            "action" => $action,
+            "message" => $message,
+            "data" => json_encode($data),
+        ]);
+    }
+
+    public static function error(string $action, string $message, array $data = []): void
+    {
+        self::create([
+            "action" => $action,
+            "message" => $message,
+            "data" => json_encode($data),
+        ]);
+    }
 }

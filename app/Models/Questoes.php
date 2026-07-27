@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 class Questoes extends Model
 {
     protected $table = "questoes";
-    CONST TABLE = "questoes";
     protected $fillable = [
         'questao',
         'alternativa1',

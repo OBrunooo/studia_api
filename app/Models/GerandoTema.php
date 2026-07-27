@@ -4,12 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class NotificacaoUsuario extends Model
+class GerandoTema extends Model
 {
-    protected $table = "notificacoes_usuarios";
+    protected $table = 'gerando_temas';
     protected $fillable = [
+        'tema',
         'user_id',
-        'message',
-        'tipo',
     ];
+
 }
