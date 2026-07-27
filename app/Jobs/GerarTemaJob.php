@@ -284,7 +284,7 @@ class GerarTemaJob implements ShouldQueue
                     if(count($conjunto) != 5) {
                         continue;
                     }
-                    if($counjunto[0] == "" || $counjunto[1] == "" || $counjunto[2] == "" || $counjunto[3] == "" || $counjunto[4] == "") {
+                    if($conjunto[0] == "" || $conjunto[1] == "" || $conjunto[2] == "" || $conjunto[3] == "" || $conjunto[4] == "") {
                         continue;
                     }
                     try {
