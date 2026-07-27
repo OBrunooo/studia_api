@@ -281,6 +281,9 @@ class GerarTemaJob implements ShouldQueue
             for($i = 0; $i < count($response); $i++) {
                 if($response[$i] != "") {
                     $conjunto = explode("{{{}}}", $response[$i]);
+                    if(count($conjunto) != 5) {
+                        continue;
+                    }
                     if($counjunto[0] == "" || $counjunto[1] == "" || $counjunto[2] == "" || $counjunto[3] == "" || $counjunto[4] == "") {
                         continue;
                     }
