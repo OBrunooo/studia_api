@@ -1,23 +1,113 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Jobs;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use App\Models\UserTema;
-use App\Models\Modelo;
-use App\Models\Token;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use App\Models\GerandoTema;
 use App\Models\Tema;
+use App\Models\Token;
 use App\Models\Questoes;
 use App\Models\ConjuntoQuestoes;
-use App\Models\UserConclusaoConjunto;
-use Illuminate\Support\Facades\Log;
+use App\Models\NotificacaoUsuario;
+use App\Models\UserTema;
+use App\Models\User;
+use App\Models\Log;
+use Illuminate\Support\Facades\DB;
 
+class GerarTemaJob implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-class QuestoesController extends Controller {
+    public int $timeout = 480;
+    public int $tries = 2;
 
-    public function gerarQuestoes($tema, $tokens, $user) {  
+    public function __construct(public int $gerandoTemaId) {}
+
+    private $tema;
+
+    public function handle(): void
+    {
+        try {
+            $gerandoTema = GerandoTema::find($this->gerandoTemaId);
+            if($gerandoTema === null) {
+                Log::error(action: "gerar-tema", message: "Gerando tema não encontrado: " . $this->gerandoTemaId);
+                return;
+            }
+            $this->tema = $gerandoTema->tema;
+            $buscaTema = Tema::where("nome", "=", $this->tema)->first();
+            if($buscaTema !== null) {
+                $gerandoTema = GerandoTema::where("tema", $gerandoTema->tema)->get();
+                foreach($gerandoTema as $g) {
+                    $userTema = UserTema::where("user_id", $g->user_id)->where("tema_id", $buscaTema->id)->first();
+                    if($userTema === null) {
+                        $user = User::where("id", "=", $g->user_id)->first();
+                        UserTema::criarUserTema($user, $buscaTema);
+                        $g->delete();
+                        continue;
+                    }
+                    NotificacaoUsuario::create([
+                        "user_id" => $g->user_id,
+                        "message" => "Você já está cadastrado(a) no tema: " . $this->tema,
+                        "tipo" => "info"
+                    ]);
+                    $g->delete();
+                }
+                return;
+            }
+            Log::info(action: "gerar-tema", message: "Gerando tema: $this->tema");
+            $resultado = $this->gerarQuestoes();
+            if($resultado["success"] != true) {
+                $this->errroAoGerarTema();
+                $resultado['funcao'] = "gerar-questoes";
+                Log::error(action: "gerar-tema", message: "Erro ao gerar tema: " . $resultado["message"], data: $resultado);
+                return;
+            }
+            $gerarAlternativas = $this->gerarAlternativas($resultado["questoes"]);
+            if($gerarAlternativas["success"] != true) {
+                $this->errroAoGerarTema();
+                $gerarAlternativas['funcao'] = "analisar-e-selecionar-questoes";
+                Log::error(action: "gerar-tema", message: "Erro ao analisar e selecionar questões: " . $gerarAlternativas["message"], data: $gerarAlternativas);
+                return;
+            }
+            $verificarConjuntos = $this->verificarConjuntos($gerarAlternativas["conjuntos"]);
+            if($verificarConjuntos["success"] != true) {
+                $this->errroAoGerarTema();
+                $verificarConjuntos['funcao'] = "verificar-conjuntos";
+                Log::error(action: "gerar-tema", message: "Erro ao verificar conjuntos: " . $verificarConjuntos["message"], data: $verificarConjuntos);
+                return;
+            }
+            $armazenaConjuntosTema = $this->armazenaConjuntosTema($verificarConjuntos["conjuntos"]);
+            if($armazenaConjuntosTema["success"] != true) {
+                $this->errroAoGerarTema();
+                $armazenaConjuntosTema['funcao'] = "armazena-conjuntos-tema";
+                Log::error(action: "gerar-tema", message: "Erro ao armazenar conjuntos: " . $armazenaConjuntosTema["message"], data: $armazenaConjuntosTema);
+                return;
+            }
+            $gerandoTema = GerandoTema::where("tema", $gerandoTema->tema)->get();
+            foreach($gerandoTema as $g) {
+                $user = User::where("id", "=", $g->user_id)->first();
+                $temaGerado = Tema::where("nome", "=", $this->tema)->first();
+                UserTema::criarUserTema($user, $temaGerado);
+                $g->delete();
+            }
+            Log::info(action: "gerar-tema", message: "Tema gerado com sucesso: ".$armazenaConjuntosTema["temaId"]);
+        }
+        catch (\Throwable $th) {
+            Log::error(action: "gerar-tema", message: "Erro ao gerar tema: " . $th->getMessage(), data: [
+                "errorMessage" => $th->getMessage(),
+                "errorLine" => $th->getLine(),
+                "file" => $th->getFile(),
+            ]);
+            $this->errroAoGerarTema();
+            return;
+        }
+    }   
+
+    private function gerarQuestoes() {
         try {
             ini_set('max_execution_time', 300); 
             set_time_limit(300);
@@ -33,26 +123,26 @@ class QuestoesController extends Controller {
                             "role" => "system",
                             "content" => "Você é um gerador avançado de questões educacionais. Sua tarefa é criar **perguntas objetivas, claras e didáticas** sobre um tema fornecido pelo usuário, com foco em **quem está começando a aprender**.
 
-Siga rigorosamente estas regras:
+        Siga rigorosamente estas regras:
 
-1. Gere exatamente 150 perguntas.
-2. As perguntas devem ser **curtas e objetivas**, preferencialmente com no máximo 25 palavras.
-3. Cubra todo o tema de forma **abrangente e introdutória**, apropriada para iniciantes.
-4. Evite perguntas muito técnicas ou complexas; elas devem facilitar o aprendizado inicial.
-5. Utilize como base conteúdos introdutórios presentes em livros acadêmicos, materiais educacionais reconhecidos, artigos confiáveis e referências amplamente aceitas na área, garantindo veracidade e consistência pedagógica.
-6. As perguntas devem priorizar conceitos básicos, definições simples, aplicações iniciais e compreensão fundamental do tema.
-7. NÃO gere perguntas avançadas, aprofundadas, altamente técnicas ou de nível especialista, exceto quando o usuário solicitar explicitamente um nível mais difícil.
-8. Evite termos excessivamente técnicos, pegadinhas, contextualizações complexas ou questões que exijam conhecimento prévio avançado.
-9. Não repita perguntas, ideias ou frases.
-10. Não forneça respostas.
-11. Todas as perguntas SEMPRE deverão ser separadas apenas por --- independente da situação e nunca utilize quebra de linha ou contra barra + n.
-12. Não enumere (sem “1.”, “2.” ou “•”).
-13. Não forneça explicações ou texto adicional; apenas a lista de perguntas.
-14. Certifique-se de que as perguntas sejam **objetivas, diretas e fáceis de compreender**, focadas no aprendizado inicial."
+        1. Gere exatamente 150 perguntas.
+        2. As perguntas devem ser **curtas e objetivas**, preferencialmente com no máximo 25 palavras.
+        3. Cubra todo o tema de forma **abrangente e introdutória**, apropriada para iniciantes.
+        4. Evite perguntas muito técnicas ou complexas; elas devem facilitar o aprendizado inicial.
+        5. Utilize como base conteúdos introdutórios presentes em livros acadêmicos, materiais educacionais reconhecidos, artigos confiáveis e referências amplamente aceitas na área, garantindo veracidade e consistência pedagógica.
+        6. As perguntas devem priorizar conceitos básicos, definições simples, aplicações iniciais e compreensão fundamental do tema.
+        7. NÃO gere perguntas avançadas, aprofundadas, altamente técnicas ou de nível especialista, exceto quando o usuário solicitar explicitamente um nível mais difícil.
+        8. Evite termos excessivamente técnicos, pegadinhas, contextualizações complexas ou questões que exijam conhecimento prévio avançado.
+        9. Não repita perguntas, ideias ou frases.
+        10. Não forneça respostas.
+        11. Todas as perguntas SEMPRE deverão ser separadas apenas por --- independente da situação e nunca utilize quebra de linha ou contra barra + n.
+        12. Não enumere (sem “1.”, “2.” ou “•”).
+        13. Não forneça explicações ou texto adicional; apenas a lista de perguntas.
+        14. Certifique-se de que as perguntas sejam **objetivas, diretas e fáceis de compreender**, focadas no aprendizado inicial."
                         ],
                         [
                             "role" => "user",
-                            "content" => $tema
+                            "content" => $this->tema
                         ]
                     ]
                 ]));
@@ -68,7 +158,6 @@ Siga rigorosamente estas regras:
             
             if($response === false){
                 curl_close($ch);
-                self::armazenaTokens($tokens);
                 return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar a conexão com o agente IA"
@@ -79,7 +168,6 @@ Siga rigorosamente estas regras:
             $response = json_decode($response, true);
 
             if($response === null){
-                self::armazenaTokens($tokens);
                 return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar a conexão com o agente IA"
@@ -87,33 +175,41 @@ Siga rigorosamente estas regras:
             };
 
             if (! isset($response['usage']['input_tokens'], $response['usage']['output_tokens'], $response['output'][1]['content'][0]['text'])) {
-                self::armazenaTokens($tokens);
                 return [
                     "success" => false,
                     "message" => "Resposta inválida do agente IA",
                 ];
             }
 
-            $tokens["gpt-5-nano"]["input"] =  $tokens["gpt-5-nano"]["input"] + $response["usage"]["input_tokens"];
-            $tokens["gpt-5-nano"]["output"] =  $tokens["gpt-5-nano"]["output"] + $response["usage"]["output_tokens"];
+            $tokens = [];
+            $tokens["gpt-5-nano"]["input"] =  $response["usage"]["input_tokens"];
+            $tokens["gpt-5-nano"]["output"] =  $response["usage"]["output_tokens"];
 
             $questoes = $response["output"][1]["content"][0]["text"];
-            Log::info("Questoes: " . $questoes);
-            return $this->analisarESelecionarQuestoes($questoes, $tema, $tokens, $user);   
+            if(isset($tokens)) {
+                Token::armazenaTokens($tokens, "gerar-questoes");
+            }
+            return [
+                "success" => true,
+                "questoes" => $questoes,
+            ];
         } catch (\Throwable $th) {
-            self::armazenaTokens($tokens);
-            Log::info("Ocorreu um erro ao gerar questões: " . $th->getMessage());
+            if(isset($tokens)) {
+                Token::armazenaTokens($tokens, "gerar-questoes");
+            }
             return [
                 "success" => false,
                 "message" => "Ocorreu um erro ao armazenar questoes/conjuntos e tema",
                 "errorMessage" => $th->getMessage(),
-                "errorLine" => $th->getLine()
+                "errorLine" => $th->getLine(),
+                "file" => $th->getFile(),
             ]; 
         }         
-
+    
+    
     }
 
-    public function analisarESelecionarQuestoes($questoes, $tema, $tokens, $user) {
+    private function gerarAlternativas($questoes) {
         try {
             ini_set('max_execution_time', 600); 
             set_time_limit(600);
@@ -150,7 +246,6 @@ Siga rigorosamente estas regras:
 
             if($response === false){
                 curl_close($ch);
-                self::armazenaTokens($tokens);
                 return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar analisar as questões, pois a resposta do agente IA é inválida"
@@ -160,7 +255,6 @@ Siga rigorosamente estas regras:
             curl_close($ch);
             
             if($response === null){
-                self::armazenaTokens($tokens);
                 return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar analisar as questões, pois a resposta do agente IA é inválida"
@@ -168,16 +262,17 @@ Siga rigorosamente estas regras:
             };
 
             if (! isset($response['usage']['input_tokens'], $response['usage']['output_tokens'], $response['output'][1]['content'][0]['text'])) {
-                self::armazenaTokens($tokens);
                 return [
                     "success" => false,
                     "message" => "Resposta inválida do agente IA",
                 ];
             }
-            
-            $tokens["gpt-5-nano"]["input"] =  $tokens["gpt-5-nano"]["input"] + $response["usage"]["input_tokens"];
-            $tokens["gpt-5-nano"]["output"] =  $tokens["gpt-5-nano"]["output"] + $response["usage"]["output_tokens"];
-
+            $tokens = [
+                "gpt-5-nano" => [
+                    "input" => $response["usage"]["input_tokens"],
+                    "output" => $response["usage"]["output_tokens"],
+                ],
+            ];
 
             $response = $response["output"][1]["content"][0]["text"];
             $response = explode("---",$response);
@@ -200,17 +295,25 @@ Siga rigorosamente estas regras:
                 }
             }
             if(count($conjuntos) < 35){
-                self::armazenaTokens($tokens);
+                if(isset($tokens)) {
+                    Token::armazenaTokens($tokens, "analisar-e-selecionar-questoes");
+                }
                 return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar analisar as questões, pois o número de conjuntos é menor que 35",
-                    "conjuntos" => $conjuntos
                 ];
             }
-            Log::info("Conjuntos: " . json_encode($conjuntos, JSON_UNESCAPED_UNICODE));
-            return $this->verificarConjunto($conjuntos, $tema, $tokens, $user);            
+            if(isset($tokens)) {
+                Token::armazenaTokens($tokens, "analisar-e-selecionar-questoes");
+            }
+            return [
+                "success" => true,
+                "conjuntos" => $conjuntos,
+            ];
         } catch (\Throwable $th) {
-            self::armazenaTokens($tokens);
+            if(isset($tokens)) {
+                Token::armazenaTokens($tokens, "analisar-e-selecionar-questoes");
+            }
             return [
                 "success" => false,
                 "message" => "Ocorreu um erro ao realizar analisar as questões",
@@ -221,7 +324,7 @@ Siga rigorosamente estas regras:
         }
     }
 
-    public function verificarConjunto($conjuntos, $tema, $tokens, $user) {
+    private function verificarConjuntos($conjuntos) {
         try {
             $message = "";
             for($i = 0; $i < count($conjuntos); $i++) {
@@ -233,7 +336,6 @@ Siga rigorosamente estas regras:
                 }
             };
             if($message === ""){
-                self::armazenaTokens($tokens);
                 return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar verificar os conjuntos",
@@ -250,7 +352,46 @@ Siga rigorosamente estas regras:
                 "input" => [
                     [
                         "role" => "system",
-                        "content" => "Você é um verificador extremamente rígido de perguntas de múltipla escolha. Cada item contém uma pergunta seguida de quatro alternativas no formato: ---Pergunta{{{}}}alternativa1{{{}}}{{{}}}alternativa2{{{}}}{{{}}}alternativa3{{{}}}{{{}}}alternativa4{{{}}}--- Regras absolutamente obrigatórias: 1. A PERGUNTA deve ser correta, clara, objetiva e sem ambiguidade. 2. A PERGUNTA não pode permitir múltiplas respostas ou interpretações diferentes. 3. A alternativa1 deve ser a única verdadeira e responder exatamente ao que é perguntado. 4. A alternativa1 não pode ser vaga, incompleta, parcialmente verdadeira ou depender de interpretação. 5. As alternativas 2, 3 e 4 devem ser totalmente falsas, porém plausíveis dentro do contexto da pergunta. 6. Nenhuma alternativa falsa pode ser parcialmente verdadeira, interpretável como correta ou verdadeira em algum cenário. 7. Pergunta e alternativas devem ser coerentes entre si; qualquer desalinhamento invalida o item. 8. NÃO tolere nenhum erro: qualquer ambiguidade, inconsistência ou dupla interpretação deve ser marcado como erro. 9. Se absolutamente todas as perguntas estiverem perfeitas, retorne apenas: 'sucesso'. 10. Se houver qualquer pergunta incorreta, retorne apenas os números das perguntas erradas no formato: ,1,4,7, (sempre começando e terminando com vírgula, sem espaços). 11. Não escreva nada além disso. Agora valide rigorosamente a lista:"
+                        "content" => "Você é um verificador extremamente rigoroso de perguntas de múltipla escolha.
+
+        Cada item contém uma pergunta seguida de quatro alternativas no formato:
+
+        ---Pergunta{{{}}}alternativa1{{{}}}{{{}}}alternativa2{{{}}}{{{}}}alternativa3{{{}}}{{{}}}alternativa4{{{}}}---
+
+        Sua tarefa é validar a qualidade de cada questão seguindo obrigatoriamente estas regras:
+
+        1. A PERGUNTA deve ser correta, clara, objetiva e possuir apenas uma resposta correta.
+
+        2. A PERGUNTA não deve possuir ambiguidade real, dupla interpretação relevante ou depender de informações não fornecidas.
+
+        3. A alternativa1 deve ser a única alternativa correta e deve responder adequadamente ao enunciado.
+
+        4. A alternativa1 deve estar completa, correta e não pode ser uma resposta parcialmente verdadeira ou insuficiente.
+
+        5. As alternativas 2, 3 e 4 devem estar incorretas no contexto específico da pergunta.
+
+        6. As alternativas incorretas devem ser plausíveis como distratores, mas não podem ser consideradas respostas corretas para a pergunta apresentada.
+
+        7. Pequenas semelhanças, termos relacionados ou partes parcialmente verdadeiras nas alternativas incorretas NÃO invalidam a questão, desde que a alternativa continue claramente incorreta como resposta final.
+
+        8. Avalie a questão considerando o conhecimento padrão da área. Não invalide perguntas apenas por existirem interpretações extremamente específicas ou cenários incomuns.
+
+        9. Caso exista dúvida razoável sobre qual alternativa é correta, considere a questão inválida.
+
+        10. Caso a questão esteja tecnicamente correta, possua apenas uma resposta válida e seja adequada para avaliação do conhecimento, considere-a válida.
+
+        11. Se absolutamente todas as perguntas estiverem perfeitas, retorne apenas:
+        sucesso
+
+        12. Se houver qualquer pergunta incorreta, retorne apenas os números das perguntas erradas no formato:
+        ,1,4,7,
+
+        Sempre comece e termine com vírgula, sem espaços ou qualquer texto adicional.
+
+        Não explique suas decisões.
+        Não escreva nada além do formato solicitado.
+
+        Agora valide rigorosamente a lista:"
                     ],
                     [
                         "role" => "user",
@@ -270,7 +411,6 @@ Siga rigorosamente estas regras:
 
             if($response === false){
                 curl_close($ch);
-                self::armazenaTokens($tokens);
                 return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar a conexão com o agente IA"
@@ -282,34 +422,36 @@ Siga rigorosamente estas regras:
 
 
             if($response === null){
-                self::armazenaTokens($tokens);
                 return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao realizar a conexão com o agente IA"
                 ];
             };
             if (! isset($response['usage']['input_tokens'], $response['usage']['output_tokens'], $response['output'][1]['content'][0]['text'])) {
-                self::armazenaTokens($tokens);
                 return [
                     "success" => false,
                     "message" => "Resposta inválida do agente IA",
                 ];
             }
-            $tokens["gpt-5-nano"]["input"] =  $tokens["gpt-5-nano"]["input"] + $response["usage"]["input_tokens"];
-            $tokens["gpt-5-nano"]["output"] =  $tokens["gpt-5-nano"]["output"] + $response["usage"]["output_tokens"];
-            
+            $tokens = [
+                "gpt-5-nano" => [
+                    "input" => $response["usage"]["input_tokens"],
+                    "output" => $response["usage"]["output_tokens"],
+                ],
+            ];
+
             $response = $response["output"][1]["content"][0]["text"];
 
             $normalizedResponse = preg_replace('/\s+/', '', strtolower($response));
             if ($normalizedResponse !== 'sucesso' && $normalizedResponse !== 'sucesso.') {
                 $partes = explode(',', $response);
                 $erros = [];
-                foreach ($partes as $chunk) {
-                    $chunk = trim($chunk);
-                    if ($chunk === '' || ! ctype_digit($chunk)) {
+                foreach ($partes as $p) {
+                    $p = trim($p);
+                    if ($p === '' || ! ctype_digit($p)) {
                         continue;
                     }
-                    $n = (int) $chunk;
+                    $n = (int) $p;
                     if ($n > 0) {
                         $erros[] = $n;
                     }
@@ -318,11 +460,15 @@ Siga rigorosamente estas regras:
                     unset($conjuntos[$n - 1]);
                 }
             }
-
-            return $this->armazenaConjuntosTema(array_values($conjuntos), $tema, $tokens, $user);   
+            Token::armazenaTokens($tokens, "verificar-conjuntos");
+            return [
+                "success" => true,
+                "conjuntos" => array_values($conjuntos),
+            ];
         } catch (\Throwable $th) {
-            self::armazenaTokens($tokens);
-            Log::info("Ocorreu um erro ao verificar conjuntos: " . $th->getMessage());
+            if(isset($tokens)) {
+                Token::armazenaTokens($tokens, "verificar-conjuntos");
+            }
             return [
                 "success" => false,
                 "message" => "Ocorreu um erro ao verificar conjuntos",
@@ -330,18 +476,18 @@ Siga rigorosamente estas regras:
         }
     }
 
-    public function armazenaConjuntosTema($conjuntos, $tema, $tokens, $user) {
+    private function armazenaConjuntosTema($conjuntos) {
         try {
             if(count($conjuntos) < 35){
-                self::armazenaTokens($tokens);
                 return [
                     "success" => false,
                     "message" => "Ocorreu um erro ao armazenar conjuntos, pois o número de conjuntos é menor que 35",
                     "conjuntos" => $conjuntos
                 ];
             };
-
-            DB::transaction(function () use ($conjuntos, $tema, $user) {
+            $temaId;
+            $temaNome = $this->tema;
+            DB::transaction(function () use ($conjuntos, $temaNome, &$temaId) {
                 $idConjuntos = [];
                 for ($i = 0; $i < 35; $i) {
                     
@@ -375,7 +521,7 @@ Siga rigorosamente estas regras:
                         'questao6_id' => $conjuntoQuestoesId[5],
                         'questao7_id' => $conjuntoQuestoesId[6]
                     ]);
-                    array_push($idConjuntos, $conjunto->id);
+                    $idConjuntos[] = $conjunto->id;
                 }
 
                 if(count($idConjuntos) < 5)  {
@@ -383,14 +529,14 @@ Siga rigorosamente estas regras:
                 }
 
                 $conjuntoQuestoesId = [];
-                $conjunto = self::buscaConjuntoQuestoesPorId($idConjuntos[0]);
+                $conjunto = ConjuntoQuestoes::where("id", "=", $idConjuntos[0])->first();
                 array_push($conjuntoQuestoesId, $conjunto->questao1_id,$conjunto->questao2_id);
-                $conjunto = self::buscaConjuntoQuestoesPorId($idConjuntos[1]);
+                $conjunto = ConjuntoQuestoes::where("id", "=", $idConjuntos[1])->first();
                 array_push($conjuntoQuestoesId, $conjunto->questao1_id,$conjunto->questao2_id);
-                $conjunto = self::buscaConjuntoQuestoesPorId($idConjuntos[2]);
+                $conjunto = ConjuntoQuestoes::where("id", "=", $idConjuntos[2])->first();
                 array_push($conjuntoQuestoesId, $conjunto->questao1_id,$conjunto->questao2_id,$conjunto->questao3_id);
 
-                $conjunto = ConjuntoQuestoes::create([
+                $novoConjunto = ConjuntoQuestoes::create([
                     'questao1_id' => $conjuntoQuestoesId[0],
                     'questao2_id' => $conjuntoQuestoesId[1],
                     'questao3_id' => $conjuntoQuestoesId[2],
@@ -399,17 +545,17 @@ Siga rigorosamente estas regras:
                     'questao6_id' => $conjuntoQuestoesId[5],
                     'questao7_id' => $conjuntoQuestoesId[6]
                 ]);
-                array_push($idConjuntos, $conjunto->id);
+                $idConjuntos[] = $novoConjunto->id;
 
                 $conjuntoQuestoesId = [];
-                $conjunto = self::buscaConjuntoQuestoesPorId($idConjuntos[2]);
+                $conjunto = ConjuntoQuestoes::where("id", "=", $idConjuntos[2])->first();
                 array_push($conjuntoQuestoesId, $conjunto->questao4_id,$conjunto->questao5_id);
-                $conjunto = self::buscaConjuntoQuestoesPorId($idConjuntos[3]);
+                $conjunto = ConjuntoQuestoes::where("id", "=", $idConjuntos[3])->first();
                 array_push($conjuntoQuestoesId, $conjunto->questao1_id,$conjunto->questao2_id);
-                $conjunto = self::buscaConjuntoQuestoesPorId($idConjuntos[4]);
+                $conjunto = ConjuntoQuestoes::where("id", "=", $idConjuntos[4])->first();
                 array_push($conjuntoQuestoesId, $conjunto->questao1_id,$conjunto->questao2_id,$conjunto->questao3_id);
 
-                $conjunto = ConjuntoQuestoes::create([
+                $novoConjunto = ConjuntoQuestoes::create([
                     'questao1_id' => $conjuntoQuestoesId[0],
                     'questao2_id' => $conjuntoQuestoesId[1],
                     'questao3_id' => $conjuntoQuestoesId[2],
@@ -418,17 +564,10 @@ Siga rigorosamente estas regras:
                     'questao6_id' => $conjuntoQuestoesId[5],
                     'questao7_id' => $conjuntoQuestoesId[6]
                 ]);
-                array_push($idConjuntos, $conjunto->id);
+                $idConjuntos[] = $novoConjunto->id;
 
-                for ($i = 0; $i < count($idConjuntos); $i ++) {
-                    UserConclusaoConjunto::create([
-                        "conjunto_id" => $idConjuntos[$i],
-                        "user_id" => $user->id,
-                    ]);
-                }
-
-                $temaModel = Tema::create([
-                    "nome" => $tema,
+                $novoTema = Tema::create([
+                    "nome" => $temaNome,
                     "conjunto1_id" => $idConjuntos[0],
                     "conjunto2_id" => $idConjuntos[1],
                     "conjunto3_id" => $idConjuntos[2],
@@ -437,22 +576,15 @@ Siga rigorosamente estas regras:
                     "conjunto6_id" => $idConjuntos[5],
                     "conjunto7_id" => $idConjuntos[6]
                 ]);
-
-                UserTema::create([
-                    "user_id" => $user->id,
-                    "tema_id" => $temaModel->id
-                ]);
+                $temaId = $novoTema->id;
             });
 
-            self::armazenaTokens($tokens);
-            Log::info("O usuário foi cadastrado ao tema $tema com sucesso");
             return [
                 "success" => true,
-                "message" => "O usuário foi cadastrado ao tema $tema com sucesso"
+                "message" => "O tema $temaNome foi cadastrado com sucesso",
+                "temaId" => $temaId
             ];
         } catch (\Throwable $th) {
-            self::armazenaTokens($tokens);
-            Log::info("Ocorreu um erro ao armazenar questoes/conjuntos e tema: " . $th->getMessage());
             return [
                 "success" => false,
                 "message" => "Ocorreu um erro armazenar questoes/conjuntos e tema",
@@ -462,41 +594,36 @@ Siga rigorosamente estas regras:
         }
     }
 
-    public static function armazenaTokens($tokens) {
-        try {
-            Log::info("Tokens: " . json_encode($tokens, JSON_UNESCAPED_UNICODE));
-            $modelosTokens = array_keys($tokens);
-            foreach($modelosTokens as $tm) {
-                $modelo = Modelo::where("nome", $tm)->first();
-                if($modelo === null) {
-                    Token::create([
-                        "modelo_id" => 1,
-                        "input" => $tokens[$tm]['input'],
-                        "output" => $tokens[$tm]['output'],
-                    ]);
-                } else {
-                    Token::create([
-                        "modelo_id" => $modelo->id,
-                        "input" => $tokens[$tm]['input'],
-                        "output" => $tokens[$tm]['output'],
-                    ]);
-                }
-            }          
-        } catch (\Throwable $th) {
-            Log::info("Ocorreu um erro ao armazenar tokens: " . $th->getMessage());
+    private function errroAoGerarTema() {
+        $gerandoTema = GerandoTema::where("tema", $this->tema)->get();
+        foreach($gerandoTema as $g) {
+            NotificacaoUsuario::create([
+                "user_id" => $g->user_id,
+                "message" => "Não foi possível gerar o tema: " . $this->tema. ". Por favor, tente novamente mais tarde.",
+                "tipo" => "error"
+            ]);
+            $g->delete();
+        }
+        return true;
+    }
+
+    public function failed(\Throwable $th): void
+    {
+        $gerandoTema = GerandoTema::find($this->gerandoTemaId);
+
+        Log::error(
+            action: "gerar-tema-falhou",
+            message: "Job falhou ao gerar tema: " . $th->getMessage(),
+            data: [
+                "gerandoTemaId" => $this->gerandoTemaId,
+                "tema" => $gerandoTema?->tema,
+            ]
+        );
+
+        if ($gerandoTema !== null) {
+            $this->tema = $gerandoTema->tema;
+            $this->errroAoGerarTema();
         }
     }
 
-    private static function buscaConjuntoQuestoesPorId($id) {
-        $conjunto = ConjuntoQuestoes::where("id", "=", $id)->first();
-        if($conjunto === null) {
-            return response()->json([
-                "success" => false,
-                "message" => "O conjunto de questões não foi encontrado"
-            ], 404);
-        }
-        return $conjunto;
-    }
 }
-
-

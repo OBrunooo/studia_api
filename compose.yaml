@@ -12,6 +12,7 @@ services:
             - '80'
         environment:
             WWWUSER: '${WWWUSER}'
+            TZ: '${APP_TIMEZONE:-America/Sao_Paulo}'
             LARAVEL_SAIL: 1
             XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
             XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
@@ -61,6 +62,7 @@ services:
         image: 'sail-8.5/app'
         environment:
             WWWUSER: '${WWWUSER}'
+            TZ: '${APP_TIMEZONE:-America/Sao_Paulo}'
             LARAVEL_SAIL: 1
             SUPERVISOR_PHP_USER: root
         volumes:

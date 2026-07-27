@@ -7,10 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class ConjuntoQuestoes extends Model
 {
     protected $table = "conjunto_questoes";
-    CONST TABLE = "conjunto_questoes";
 
     protected $fillable = [
-        'user_id',
         'questao1_id',
         'questao2_id',
         'questao3_id',

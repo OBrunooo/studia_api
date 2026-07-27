@@ -11,4 +11,6 @@ class Modelo extends Model
     protected $fillable = [
         "nome"
     ];
+
+    protected const MODELO_DEFAULT = 1;
 }
