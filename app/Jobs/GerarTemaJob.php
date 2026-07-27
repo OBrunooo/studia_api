@@ -225,7 +225,7 @@ class GerarTemaJob implements ShouldQueue
                 "input" => [
                     [
                         "role" => "system",
-                        "content" => "Você é um especialista em curadoria educacional e geração de questões para iniciantes. Sua tarefa: (1) analisar uma lista de perguntas fornecida; (2) selecionar exatamente as 70 melhores; (3) organizar essas 70 do mais fácil ao mais difícil; (4) gerar 4 alternativas para cada pergunta, onde a primeira alternativa é sempre a correta. Regras obrigatórias: 1) Analise cada pergunta individualmente. 2) Não alterar, reescrever, resumir ou modificar o texto original das perguntas; apenas selecionar e reorganizar. 3) Não repetir perguntas. 4) Produzir exatamente 70 blocos. 5) Cada bloco deve ser formatado sem nenhuma quebra de linha visível ou invisível, e sem o texto 'PerguntaOriginal'. 6) Formato estrito de cada bloco: iniciar com '---' seguido imediatamente pela pergunta original; em seguida concatenar quatro alternativas, cada uma delimitada por '{{{}}}' e sem qualquer quebra de linha, por exemplo: ---PERGUNTA_AQUI{{{}}}Alternativa1_correta{{{}}}{{{}}}Alternativa2_plausivel{{{}}}{{{}}}Alternativa3_plausivel{{{}}}{{{}}}Alternativa4_plausivel{{{}}}---. 7) A primeira alternativa é sempre a correta. 8) As outras três devem ser incorretas, porém plausíveis e curtas, com no máximo 12 palavras. 9) Nunca usar numeração, letras (A,B,C...), bullets ou símbolos adicionais. 10) Nunca usar '<', '>', '[', ']' ou qualquer caractere que possa ser interpretado como markup. 11) Nunca incluir '\n', '\n', '\r', '\r', '\t', '\t', ou qualquer caractere de escape no output. Nenhuma forma de quebra de linha é permitida. 12) O resultado final deve ser um único texto contínuo contendo os 70 blocos consecutivos exatamente no formato descrito, sem espaços extras, sem quebras e sem texto adicional. 13) Retorne apenas os blocos finais formatados."
+                        "content" => "Você é um especialista em curadoria educacional e geração de questões para iniciantes. Sua tarefa: (1) analisar uma lista de perguntas fornecida; (2) selecionar exatamente as 70 melhores; (3) organizar essas 70 do mais fácil ao mais difícil; (4) gerar 4 alternativas para cada pergunta, onde a primeira alternativa é sempre a correta. Regras obrigatórias: 1) Analise cada pergunta individualmente. 2) Não alterar, reescrever, resumir ou modificar o texto original das perguntas; apenas selecionar e reorganizar. 3) Não repetir perguntas. 4) Produzir exatamente 70 blocos. 5) Cada bloco deve ser formatado sem nenhuma quebra de linha visível ou invisível, e sem o texto 'PerguntaOriginal'. 6) Formato estrito de cada bloco: iniciar com '---' seguido imediatamente pela pergunta original; em seguida concatenar pergunta e quatro alternativas separadas sempre por um único delimitador '{{{}}}', sem repetir o delimitador consecutivamente, por exemplo: ---PERGUNTA_AQUI{{{}}}Alternativa1_correta{{{}}}Alternativa2_plausivel{{{}}}Alternativa3_plausivel{{{}}}Alternativa4_plausivel---. 7) A primeira alternativa é sempre a correta. 8) As outras três devem ser incorretas, porém plausíveis e curtas, com no máximo 12 palavras. 9) Nunca usar numeração, letras (A,B,C...), bullets ou símbolos adicionais. 10) Nunca usar '<', '>', '[', ']' ou qualquer caractere que possa ser interpretado como markup. 11) Nunca incluir quebras de linha ou tabulações no output. 12) O resultado final deve ser um único texto contínuo contendo os 70 blocos consecutivos exatamente no formato descrito, sem espaços extras, sem quebras e sem texto adicional. 13) Retorne apenas os blocos finais formatados."
                     ],
                     [
                         "role" => "user",
@@ -281,6 +281,9 @@ class GerarTemaJob implements ShouldQueue
             for($i = 0; $i < count($response); $i++) {
                 if($response[$i] != "") {
                     $conjunto = explode("{{{}}}", $response[$i]);
+                    if($counjunto[0] == "" || $counjunto[1] == "" || $counjunto[2] == "" || $counjunto[3] == "" || $counjunto[4] == "") {
+                        continue;
+                    }
                     try {
                         $conjuntos[]= [
                             "questao" => $conjunto[0],
@@ -356,7 +359,7 @@ class GerarTemaJob implements ShouldQueue
 
         Cada item contém uma pergunta seguida de quatro alternativas no formato:
 
-        ---Pergunta{{{}}}alternativa1{{{}}}{{{}}}alternativa2{{{}}}{{{}}}alternativa3{{{}}}{{{}}}alternativa4{{{}}}---
+        ---Pergunta{{{}}}alternativa1{{{}}}alternativa2{{{}}}alternativa3{{{}}}alternativa4---
 
         Sua tarefa é validar a qualidade de cada questão seguindo obrigatoriamente estas regras:
 
