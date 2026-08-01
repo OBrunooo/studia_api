@@ -125,3 +125,74 @@ A conexão de fila padrão é `redis` (`QUEUE_CONNECTION=redis` no `.env`).
 ## Licença
 
 MIT
+# StudIA API
+
+> API de estudos que gera questões de múltipla escolha sobre qualquer tema usando IA.
+
+[![Laravel](https://img.shields.io/badge/Laravel-12-FF2D20?logo=laravel&logoColor=white)](https://laravel.com)
+[![PHP](https://img.shields.io/badge/PHP-8.5-777BB4?logo=php&logoColor=white)](https://php.net)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)](https://redis.io)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://docker.com)
+[![OpenAI](https://img.shields.io/badge/OpenAI-412991?logo=openai&logoColor=white)](https://openai.com)
+
+**Produção:** `https://studia.vps-bruno-gomes.com/api`
+
+---
+
+## O que é
+
+O StudIA é uma plataforma de estudos onde o usuário digita um tema — como "Revolução Francesa" ou "Laravel" — e recebe uma trilha de **7 módulos com questões de múltipla escolha**, do básico ao avançado.
+
+Se o tema ainda não existe, a API **cria tudo do zero com IA**. Se já existe, o usuário é vinculado na hora.
+
+---
+
+## Como funciona (a grosso modo)
+
+1. O usuário pede um tema pela API
+2. A IA valida se o tema faz sentido (ex: "cadeira" → rejeitado)
+3. Se for válido, um job em background gera as questões via OpenAI
+4. A IA cria muitas perguntas, seleciona as melhores, monta as alternativas e revisa a qualidade
+5. Tudo é salvo em 7 módulos de 7 questões cada
+6. O usuário recebe uma notificação quando a trilha fica pronta
+7. Ele estuda módulo a módulo e acompanha o progresso em porcentagem
+
+A geração demora alguns minutos, por isso roda em **fila assíncrona** — a API responde na hora e o trabalho pesado fica por conta do worker.
+
+---
+
+## Stack
+
+- **Laravel 12** + **PHP 8.5**
+- **MariaDB** — banco de dados
+- **Redis** — filas e cache
+- **OpenAI** — geração de questões
+- **Docker Compose** + **Traefik** — deploy com HTTPS
+
+---
+
+## Rodando localmente
+
+```bash
+git clone git@github.com:OBrunooo/studia-api.git
+cd studia-api
+composer run setup
+
+# Configure o .env (banco, Redis, OPENAI_API_KEY)
+docker network create traefik   # só na primeira vez
+./vendor/bin/sail up -d
+```
+
+API disponível em **http://localhost:8000**
+
+---
+
+## Autor
+
+**Bruno Gomes** · [GitHub](https://github.com/OBrunooo)
+
+---
+
+## Licença
+
+MIT
