@@ -1,0 +1,34 @@
+# Overlay usado apenas na VPS: publica via Traefik e liga o app às redes externas
+# `traefik` e `backend-net`, que precisam existir no host.
+#   docker compose -f compose.yaml -f compose.prod.yaml up -d
+# Localmente basta o compose.yaml, que é auto-suficiente.
+services:
+    laravel.test:
+        ports: !reset []
+        networks:
+            - sail
+            - traefik
+            - backend-net
+        labels:
+            - 'traefik.enable=true'
+            - "traefik.docker.network=traefik"
+            - "traefik.http.routers.laravel.rule=Host(`studia.vps-bruno-gomes.com`)"
+            - "traefik.http.routers.laravel.entrypoints=websecure"
+            - "traefik.http.routers.laravel.tls.certresolver=letsencrypt"
+            - "traefik.http.services.laravel.loadbalancer.server.port=80"
+            - "traefik.http.services.laravel.loadbalancer.server.scheme=http"
+            - "traefik.http.routers.laravel.service=laravel"
+
+    redis:
+        ports: !reset []
+
+    queue:
+        networks:
+            - sail
+            - backend-net
+
+networks:
+    traefik:
+        external: true
+    backend-net:
+        external: true

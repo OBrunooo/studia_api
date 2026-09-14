@@ -4,14 +4,16 @@ services:
             context: './vendor/laravel/sail/runtimes/8.5'
             dockerfile: Dockerfile
             args:
-                WWWGROUP: '${WWWGROUP}'
+                WWWGROUP: '${WWWGROUP:-1000}'
         image: 'sail-8.5/app'
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         expose:
             - '80'
+        ports:
+            - '127.0.0.1:${APP_PORT:-8000}:80'
         environment:
-            WWWUSER: '${WWWUSER}'
+            WWWUSER: '${WWWUSER:-1000}'
             TZ: '${APP_TIMEZONE:-America/Sao_Paulo}'
             LARAVEL_SAIL: 1
             XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
@@ -21,20 +23,10 @@ services:
             - '.:/var/www/html'
         networks:
             - sail
-            - traefik
         depends_on:
             redis:
                 condition: service_healthy
         restart: unless-stopped
-        labels:
-            - 'traefik.enable=true'
-            - "traefik.docker.network=traefik"
-            - "traefik.http.routers.laravel.rule=Host(`studia.vps-bruno-gomes.com`)"
-            - "traefik.http.routers.laravel.entrypoints=websecure"
-            - "traefik.http.routers.laravel.tls.certresolver=letsencrypt"
-            - "traefik.http.services.laravel.loadbalancer.server.port=80"
-            - "traefik.http.services.laravel.loadbalancer.server.scheme=http"
-            - "traefik.http.routers.laravel.service=laravel"
 
     redis:
         image: 'redis:alpine'
@@ -58,10 +50,10 @@ services:
             context: './vendor/laravel/sail/runtimes/8.5'
             dockerfile: Dockerfile
             args:
-                WWWGROUP: '${WWWGROUP}'
+                WWWGROUP: '${WWWGROUP:-1000}'
         image: 'sail-8.5/app'
         environment:
-            WWWUSER: '${WWWUSER}'
+            WWWUSER: '${WWWUSER:-1000}'
             TZ: '${APP_TIMEZONE:-America/Sao_Paulo}'
             LARAVEL_SAIL: 1
             SUPERVISOR_PHP_USER: root
@@ -86,9 +78,6 @@ services:
 networks:
     sail:
         driver: bridge
-    traefik:
-        external: true
-
 volumes:
     sail-redis:
         driver: local
