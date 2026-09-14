@@ -58,7 +58,6 @@ O comando `composer run setup` executa:
 
 - `composer install`
 - Cria `.env` a partir de `.env.example` (se não existir)
-- Cria `compose.override.yaml` a partir de `compose.override.yaml.example` (se não existir)
 - Gera a `APP_KEY`
 - Roda migrations, instala dependências npm e build do frontend
 
@@ -78,21 +77,32 @@ QUEUE_CONNECTION=redis
 OPENAI_API_KEY=sk-...
 ```
 
-### 3. Criar a rede Traefik (apenas na primeira vez)
-
-Em desenvolvimento local não há um container Traefik real, mas o `compose.yaml` referencia a rede externa `traefik`. Crie-a uma vez:
-
-```bash
-docker network create traefik
-```
-
-### 4. Subir os containers
+### 3. Subir os containers
 
 ```bash
 ./vendor/bin/sail up -d
 ```
 
 A API ficará disponível em **http://localhost:8000** (porta configurável via `APP_PORT` no `.env`).
+
+O `compose.yaml` é auto-suficiente: sobe `laravel.test`, `redis` e `queue` em uma rede interna criada pelo próprio Compose. Não é preciso criar redes externas nem editar o arquivo — tudo que depende da infra da VPS (Traefik e as redes compartilhadas) vive no `compose.prod.yaml`.
+
+---
+
+## Deploy na VPS
+
+O `compose.prod.yaml` é um overlay aplicado por cima do `compose.yaml`. Ele remove as portas publicadas em `localhost`, conecta os containers às redes externas `traefik` e `backend-net` e adiciona as labels de roteamento e TLS do Traefik.
+
+```bash
+docker compose -f compose.yaml -f compose.prod.yaml up -d --build
+```
+
+As redes externas precisam existir no host antes do primeiro deploy, já que são compartilhadas com os outros serviços da VPS:
+
+```bash
+docker network create traefik
+docker network create backend-net
+```
 
 ---
 

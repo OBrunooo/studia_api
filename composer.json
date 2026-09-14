@@ -40,7 +40,6 @@
         "setup": [
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
-            "@php -r \"file_exists('compose.override.yaml') || copy('compose.override.yaml.example', 'compose.override.yaml');\"",
             "@php artisan key:generate",
             "@php artisan migrate --force",
             "npm install",

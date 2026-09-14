@@ -1,7 +1,0 @@
-# Copie para compose.override.yaml no ambiente local:
-#   cp compose.override.yaml.example compose.override.yaml
-# Ou rode: composer run setup
-services:
-    laravel.test:
-        ports:
-            - '127.0.0.1:${APP_PORT:-8000}:80'
